@@ -23,6 +23,10 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.iconButton}>
           <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.iconButton}>
+          <Ionicons name="search" size={28} color={theme.colors.primary} />
+        </TouchableOpacity>
       </View>
 
       {/* ------------------- CONTENIDO PRINCIPAL ------------------- */}
@@ -48,7 +52,7 @@ export default function HomeScreen() {
         <View style={styles.cameraButtonWrapper}>
           <OpenCameraButton
             onPick={(asset) => console.log('📷 Foto tomada:', asset.uri)}
-            icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Nose q hace este color
+            icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Color del dibujito
             color={theme.colors.primary} // color tipo Mercado Libre
             size={70}
           />
@@ -108,12 +112,14 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderTopWidth: 1,
     borderColor: theme.colors.background,
+    position: 'relative',
   },
   iconButton: {
     alignItems: 'center',
@@ -124,6 +130,10 @@ const styles = StyleSheet.create({
     marginTop: 2 , //Espacio entre icono y texto del icono
   },
   cameraButtonWrapper: {
+    position: 'absolute',
+    bottom: 15,
+    left: '50%',
+    transform: [{ translateX: -30 }],//NOSE QUE HICE PERO ESTO CENTA EL DIV
     alignItems: 'center',
     marginBottom: 15,
   },
