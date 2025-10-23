@@ -3,7 +3,8 @@ export const theme = {
         primary: '#ff5f2c',      // azul principal
         secondary: '#ff6f3c',    // color complementario
         background: '#FFFFFF',   // color de fondo
-        text: '#1C1C1E',         // color de texto principal
+        background2:'#f7f7f7',   // color de fondo secundario
+        text: '#1c1c1eff',         // color de texto principal
         textMuted: '#8E8E93',    // texto deshabilitado o secundario
         success: '#34C759',      // verde de éxito
         error: '#FF3B30',        // rojo de error
