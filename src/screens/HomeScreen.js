@@ -17,7 +17,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoButton}>
-          <Text style={styles.logoText}>RappiFarm</Text>
+          <Text style={styles.logoText}>RappiFarma</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.iconButton}>
@@ -28,7 +28,7 @@ export default function HomeScreen() {
       {/* ------------------- CONTENIDO PRINCIPAL ------------------- */}
       <View style={styles.content}>
         <Text style={styles.title}>🏪 Bienvenido</Text>
-        <Text style={styles.subtitle}>Cuidate en casa con RappiFarm</Text>
+        <Text style={styles.subtitle}>Cuidate en casa con RappiFarma</Text>
 
         <ButtonPrimary
           title="Enviar pedido"
