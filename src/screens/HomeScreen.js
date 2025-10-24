@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import OpenCameraButton from '../components/OpenCameraButton'; // 👈 tu botón cámara
 import ButtonPrimary from '../components/ButtonPrimary'; // 👈 tu botón genérico
 import { theme } from '../styles/theme';
+import { logOut } from '../features/auth/actions';
 
 
 export default function HomeScreen() {
