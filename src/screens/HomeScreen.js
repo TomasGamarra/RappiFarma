@@ -14,21 +14,29 @@ export default function HomeScreen() {
     <View style={styles.container}>
       {/* ------------------- BARRA SUPERIOR ------------------- */}
       <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="menu-outline" size={28} color= {theme.colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.leftSection}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="menu-outline" size={28} color= {theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={styles.logoButton}>
-          <Text style={styles.logoText}>RappiFarma</Text>
-        </TouchableOpacity>
+        <View style={styles.centerSection}>
+          <TouchableOpacity style={styles.logoButton}>
+            <Text style={styles.logoText}>RappiFarma</Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.rightSection}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
+          </TouchableOpacity>
 
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="search" size={28} color={theme.colors.primary} />
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="search" size={28} color={theme.colors.primary} />
+          </TouchableOpacity>
+        </View>
+        
+
       </View>
 
       {/* ------------------- CONTENIDO PRINCIPAL ------------------- */}
@@ -45,25 +53,31 @@ export default function HomeScreen() {
 
       {/* ------------------- BARRA INFERIOR ------------------- */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="person-circle-outline" size={32} color={theme.colors.primary} />
-          <Text style={styles.iconText}>Perfil</Text>
-        </TouchableOpacity>
-
-        {/* Ícono central: abre la cámara */}
-        <View style={styles.cameraButtonWrapper}>
-          <OpenCameraButton
-            onPick={(asset) => console.log('📷 Foto tomada:', asset.uri)}
-            icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Color del dibujito
-            color={theme.colors.primary} // color tipo Mercado Libre
-            size={70}
-          />
+        <View style={styles.leftSection}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="person-circle-outline" size={32} color={theme.colors.primary} />
+            <Text style={styles.iconText}>Perfil</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.iconButton}>
-          <Ionicons name="settings-outline" size={32} color={theme.colors.primary} />
-          <Text style={styles.iconText}>Ajustes</Text>
-        </TouchableOpacity>
+        {/* Ícono central: abre la cámara */}
+        <View style={styles.centerSection}>
+          <View style={styles.cameraButtonWrapper}>
+            <OpenCameraButton
+              onPick={(asset) => console.log('📷 Foto tomada:', asset.uri)}
+              icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Color del dibujito
+              color={theme.colors.primary} // color tipo Mercado Libre
+              size={70}
+            />
+          </View>
+        </View>
+
+        <View style={styles.rightSection}>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="settings-outline" size={32} color={theme.colors.primary} />
+            <Text style={styles.iconText}>Ajustes</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <StatusBar style="auto" />
@@ -88,7 +102,25 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.background,
     elevation: 4,
   },
+//Sectores ordenados
+leftSection: {
+  flex: 1,
+  alignItems: 'flex-start',
+},
+centerSection: {
+  flex: 1,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+rightSection: {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+},
+//-------------
   logoButton: {
+    position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -96,6 +128,7 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.large,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
+    textAlign: 'center',
   },
   content: {
     flex: 1,
@@ -133,11 +166,11 @@ const styles = StyleSheet.create({
   },
   cameraButtonWrapper: {
     position: 'absolute',
-    bottom: 15,
+    bottom: 10,
     left: 0,
     right: 0,
     alignItems: 'center',
-    marginBottom: 15,
+    
   },
   iconTextCenter: {
     fontSize: theme.typography.fontSize.small,
