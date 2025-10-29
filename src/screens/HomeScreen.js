@@ -5,7 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import OpenCameraButton from '../components/OpenCameraButton'; // 👈 tu botón cámara
 import ButtonPrimary from '../components/ButtonPrimary'; // 👈 tu botón genérico
 import { theme } from '../styles/theme';
-import { logOut } from '../features/auth/actions';
+import Toast from "react-native-toast-message";
+import { createRequestWithPhoto } from "../features/requests/actions";
+
 
 
 export default function HomeScreen() {
@@ -51,12 +53,19 @@ export default function HomeScreen() {
 
         {/* Ícono central: abre la cámara */}
         <View style={styles.cameraButtonWrapper}>
-          <OpenCameraButton
-            onPick={(asset) => console.log('📷 Foto tomada:', asset.uri)}
-            icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Color del dibujito
-            color={theme.colors.primary} // color tipo Mercado Libre
-            size={70}
-          />
+            <OpenCameraButton
+              onPick={async (asset) => {
+                try {
+                  const { requestId } = await createRequestWithPhoto({ imageUri: asset.uri });
+                  Toast.show({ type: "success", text1: "Receta enviada", text2: `Solicitud: ${requestId}` });
+                } catch (e) {
+                  Toast.show({ type: "error", text1: "No se pudo enviar la receta", text2: e.message || "" });
+                }
+              }}
+              icon={<Ionicons name="scan-outline" size={32} color="#fff" />}
+              color={theme.colors.primary}
+              size={70}
+            />
         </View>
 
         <TouchableOpacity style={styles.iconButton}>
