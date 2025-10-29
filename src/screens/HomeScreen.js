@@ -134,8 +134,8 @@ const styles = StyleSheet.create({
   cameraButtonWrapper: {
     position: 'absolute',
     bottom: 15,
-    left: '50%',
-    transform: [{ translateX: -30 }],//NOSE QUE HICE PERO ESTO CENTA EL DIV
+    left: 0,
+    right: 0,
     alignItems: 'center',
     marginBottom: 15,
   },
