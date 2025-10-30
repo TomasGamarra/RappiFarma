@@ -72,9 +72,10 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         {/* Ícono central: abre la cámara */}
-        <View style={styles.cameraButtonWrapper}>
-          <OpenCameraButton
-            onPick={async (asset) => {
+        <View style={styles.centerSection}>
+          <View style={styles.cameraButtonWrapper}>
+            <OpenCameraButton
+             onPick={async (asset) => {
                 try {
                   const { requestId } = await createRequestWithPhoto({ imageUri: asset.uri });
                   Toast.show({ type: "success", text1: "Receta enviada", text2: `Solicitud: ${requestId}` });
@@ -85,14 +86,15 @@ export default function HomeScreen({ navigation }) {
             icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Color del dibujito
             color={theme.colors.primary} // color tipo Mercado Libre
             size={70}
-          />
+            />
+          </View>
         </View>
 
         <View style={styles.rightSection}>
           
           <TouchableOpacity 
           style={styles.iconButton}
-          onPress={() => navigation.navigate('Ofertas')}>
+          onPress={() => navigation.replace('Ofertas')}>
             <Ionicons name="time-outline" size={32} color={theme.colors.textMuted} />
             <Text style={styles.iconTextSecondary}>Ofertas</Text>
           </TouchableOpacity>

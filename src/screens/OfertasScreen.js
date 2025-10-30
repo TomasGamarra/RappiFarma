@@ -1,11 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput ,ScrollView} from 'react-native';
-import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import OpenCameraButton from '../components/OpenCameraButton'; // 👈 tu botón cámara
-import ButtonPrimary from '../components/ButtonPrimary'; // 👈 tu botón genérico
 import { theme } from '../styles/theme';
-import { logOut } from '../features/auth/actions';
 
 
 export default function OfertasScreen( { navigation }) {
@@ -129,7 +125,7 @@ export default function OfertasScreen( { navigation }) {
         <View style={styles.leftSection}>     
           <TouchableOpacity 
           style={styles.iconButton}
-          onPress={() => navigation.navigate('Home')}>
+          onPress={() => navigation.replace('Home')}>
             <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
             <Text style={styles.iconTextSecondary}>Home</Text>
           </TouchableOpacity>
