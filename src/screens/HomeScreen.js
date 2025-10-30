@@ -79,6 +79,7 @@ export default function HomeScreen({ navigation }) {
                 try {
                   const { requestId } = await createRequestWithPhoto({ imageUri: asset.uri });
                   Toast.show({ type: "success", text1: "Receta enviada", text2: `Solicitud: ${requestId}` });
+                  navigation.replace('Ofertas');
                 } catch (e) {
                   Toast.show({ type: "error", text1: "No se pudo enviar la receta", text2: e.message || "" });
                 }
