@@ -11,7 +11,7 @@ import { createRequestWithPhoto } from "../features/requests/actions";
 
 
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* ------------------- BARRA SUPERIOR ------------------- */}
@@ -20,6 +20,9 @@ export default function HomeScreen() {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="menu-outline" size={28} color= {theme.colors.primary} />
           </TouchableOpacity>
+
+        {/* Spacer para ordenar iconos */}
+          <View style={{ flex: 1 }}/>
         </View>
 
         <View style={styles.centerSection}>
@@ -56,16 +59,23 @@ export default function HomeScreen() {
       {/* ------------------- BARRA INFERIOR ------------------- */}
       <View style={styles.bottomBar}>
         <View style={styles.leftSection}>
+          
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="person-circle-outline" size={32} color={theme.colors.primary} />
-            <Text style={styles.iconText}>Perfil</Text>
+            <Ionicons name="home" size={32} color={theme.colors.primary} />
+            <Text style={styles.iconTextPrimary}>Home</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="person-circle-outline" size={32} color={theme.colors.textMuted} />
+            <Text style={styles.iconTextSecondary}>Perfil</Text>
           </TouchableOpacity>
         </View>
 
         {/* Ícono central: abre la cámara */}
-        <View style={styles.cameraButtonWrapper}>
-          <OpenCameraButton
-            onPick={async (asset) => {
+        <View style={styles.centerSection}>
+          <View style={styles.cameraButtonWrapper}>
+            <OpenCameraButton
+             onPick={async (asset) => {
                 try {
                   const { requestId } = await createRequestWithPhoto({ imageUri: asset.uri });
                   Toast.show({ type: "success", text1: "Receta enviada", text2: `Solicitud: ${requestId}` });
@@ -76,14 +86,24 @@ export default function HomeScreen() {
             icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Color del dibujito
             color={theme.colors.primary} // color tipo Mercado Libre
             size={70}
-          />
+            />
+          </View>
         </View>
 
         <View style={styles.rightSection}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="settings-outline" size={32} color={theme.colors.primary} />
-            <Text style={styles.iconText}>Ajustes</Text>
+          
+          <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.replace('Ofertas')}>
+            <Ionicons name="time-outline" size={32} color={theme.colors.textMuted} />
+            <Text style={styles.iconTextSecondary}>Ofertas</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="settings-outline" size={32} color={theme.colors.textMuted} />
+            <Text style={styles.iconTextSecondary}>Ajustes</Text>
+          </TouchableOpacity>
+
         </View>
       </View>
 
@@ -106,13 +126,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.background,
+    borderBottomColor: theme.colors.background2,
     elevation: 4,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
   },
 //Sectores ordenados
 leftSection: {
   flex: 1,
-  alignItems: 'flex-start',
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-around',
 },
 centerSection: {
   flex: 1,
@@ -123,7 +149,7 @@ rightSection: {
   flex: 1,
   flexDirection: 'row',
   alignItems: 'center',
-  justifyContent: 'flex-end',
+  justifyContent: 'space-around',
 },
 //-------------
   logoButton: {
@@ -167,10 +193,17 @@ rightSection: {
     alignItems: 'center',
     padding: theme.spacing.sm,
   },
-  iconText: {
+  iconTextSecondary: {
     fontSize: theme.typography.fontSize.small,
     marginTop: 2 , //Espacio entre icono y texto del icono
+    color: theme.colors.textMuted
   },
+  iconTextPrimary: {
+    fontSize: theme.typography.fontSize.small,
+    fontWeight: theme.typography.fontWeight.bold,
+    marginTop: 2 , //Espacio entre icono y texto del icono
+    color: theme.colors.primary 
+   },
   cameraButtonWrapper: {
     position: 'absolute',
     bottom: 10,
