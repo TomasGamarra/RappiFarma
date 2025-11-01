@@ -1,56 +1,50 @@
-import React, { useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, StyleSheet, TouchableOpacity, ActivityIndicator
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-import { signUp } from '../features/auth/actions';
+import React, { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from "react-native";
+import { theme } from "../styles/theme";
+import PasswordInput from "../components/PasswordInput";
+import Toast from "react-native-toast-message";
+import { signUp } from "../features/auth/actions";
 
 export default function RegisterScreen({ navigation }) {
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [dni, setDni] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [dni, setDni] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const mapFirebaseError = (code) => {
-    switch (code) {
-      case 'auth/invalid-email': return 'DNI inválido.';
-      case 'auth/missing-password': return 'Ingresá tu contraseña.';
-      case 'auth/weak-password': return 'Contraseña muy débil.';
-      case 'auth/email-already-in-use': return 'Este DNI ya está registrado.';
-      default: return 'Error al registrarse.';
-    }
-  };
 
   const handleRegister = async () => {
-    setError('');
+    // Trim de todos los campos
+    const n = nombre.trim();
+    const a = apellido.trim();
+    const d = dni.trim();
+    const t = telefono.trim();
+    const dir = direccion.trim();
+    const pass = password;
 
-    const nombreVal = nombre.trim();
-    const apellidoVal = apellido.trim();
-    const dniVal = dni.trim();
-    const passwordVal = password;
-
-    setNombre('');
-    setApellido('');
-    setDni('');
-    setPassword('');
-
-    if (!nombreVal || !apellidoVal || !dniVal) {
-      return setError('Completá nombre, apellido y DNI.');
+    // Validaciones básicas
+    if (!n || !a || !d || !t || !dir) {
+      Toast.show({ type: "error", text1: "Completá todos los campos" });
+      return;
     }
-    if (!passwordVal) {
-      return setError('Ingresá tu contraseña.');
+    if (!pass || pass.length < 6) {
+      Toast.show({ type: "error", text1: "Contraseña mínima 6 caracteres" });
+      return;
     }
 
     try {
       setLoading(true);
-      await signUp(dniVal, passwordVal, nombreVal, apellidoVal);
-      navigation.replace('Login');
+      await signUp({ nombre: n, apellido: a, dni: d, telefono: t, direccion: dir, password: pass });
+      Toast.show({ type: "success", text1: "Registro exitoso" });
+      navigation.replace("Login");
     } catch (e) {
-      setError(mapFirebaseError(e?.code));
+      const map = {
+        "auth/email-already-in-use": "El usuario ya está registrado",
+        "auth/invalid-email": "DNI inválido",
+        "auth/weak-password": "Contraseña débil",
+      };
+      Toast.show({ type: "error", text1: map[e?.code] || "Error al registrar" });
     } finally {
       setLoading(false);
     }
@@ -58,63 +52,68 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Registrarse</Text>
+      <Image source={require("../../assets/icon.png")} style={styles.logo} resizeMode="contain" />
+      <Text style={styles.subtitle}>Creá tu cuenta en RappiFarma</Text>
 
-      {!!error && <Text style={styles.errorText}>{error}</Text>}
+      <View style={styles.formContainer}>
+        <Text style={styles.title}>Registrarse</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Nombre"
-        value={nombre}
-        onChangeText={setNombre}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Apellido"
-        value={apellido}
-        onChangeText={setApellido}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="DNI"
-        value={dni}
-        onChangeText={setDni}
-        keyboardType="numeric"
-      />
-
-      <View style={styles.inputWrapper}>
         <TextInput
-          style={styles.inputWithIcon}
-          placeholder="Contraseña"
+          style={styles.input}
+          placeholder="Nombre"
+          placeholderTextColor={theme.colors.textMuted}
+          value={nombre}
+          onChangeText={setNombre}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Apellido"
+          placeholderTextColor={theme.colors.textMuted}
+          value={apellido}
+          onChangeText={setApellido}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="DNI"
+          placeholderTextColor={theme.colors.textMuted}
+          value={dni}
+          onChangeText={setDni}
+          keyboardType="numeric"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Teléfono"
+          placeholderTextColor={theme.colors.textMuted}
+          value={telefono}
+          onChangeText={setTelefono}
+          keyboardType="phone-pad"
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Dirección"
+          placeholderTextColor={theme.colors.textMuted}
+          value={direccion}
+          onChangeText={setDireccion}
+        />
+
+        <PasswordInput
           value={password}
           onChangeText={setPassword}
-          secureTextEntry={!showPassword}
+          placeholder="Contraseña"
         />
-        <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.iconButton}>
-          <Ionicons
-            name={showPassword ? 'eye-off' : 'eye'}
-            size={22}
-            color={theme.colors.textMuted}
-          />
-        </Pressable>
-      </View>
 
-      <Pressable
-        style={[styles.loginButton, loading && { opacity: 0.7 }]}
-        onPress={handleRegister}
-        disabled={loading}
-      >
-        {loading
-          ? <ActivityIndicator color={theme.colors.background} />
-          : <Text style={styles.loginButtonText}>Registrar</Text>}
-      </Pressable>
+        <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? "..." : "Crear cuenta"}</Text>
+        </TouchableOpacity>
 
-      <View style={styles.registerContainer}>
-        <Text>¿Ya tenés cuenta? </Text>
-        <TouchableOpacity onPress={() => navigation.replace('Login')}>
-          <Text style={styles.registerText}>Iniciar sesión</Text>
+        <TouchableOpacity onPress={() => navigation.replace("Login")}>
+          <Text style={styles.registerText}>
+            ¿Ya tenés una cuenta? <Text style={styles.registerLink}> Iniciá sesión</Text>
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -122,15 +121,20 @@ export default function RegisterScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background, padding: theme.spacing.lg, justifyContent: 'center' },
-  title: { fontSize: theme.typography.fontSize.title, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.primary, marginBottom: theme.spacing.xl, textAlign: 'center' },
-  errorText: { color: theme.colors.danger, textAlign: 'center', marginBottom: theme.spacing.sm },
-  input: { borderWidth: 1, borderColor: theme.colors.textMuted, borderRadius: theme.borderRadius.sm, padding: theme.spacing.md, marginBottom: theme.spacing.md, fontSize: theme.typography.fontSize.medium, color: theme.colors.text },
-  inputWrapper: { position: 'relative', marginBottom: theme.spacing.md },
-  inputWithIcon: { borderWidth: 1, borderColor: theme.colors.textMuted, borderRadius: theme.borderRadius.sm, paddingVertical: theme.spacing.md, paddingLeft: theme.spacing.md, paddingRight: 40, fontSize: theme.typography.fontSize.medium, color: theme.colors.text },
-  iconButton: { position: 'absolute', right: theme.spacing.md, top: '50%', transform: [{ translateY: -12 }] },
-  loginButton: { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: theme.spacing.md, marginTop: theme.spacing.lg, alignItems: 'center' },
-  loginButtonText: { color: theme.colors.background, fontWeight: theme.typography.fontWeight.bold, fontSize: theme.typography.fontSize.medium },
-  registerContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: theme.spacing.md },
-  registerText: { color: theme.colors.secondary, fontWeight: theme.typography.fontWeight.bold },
+  container: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#E8F0FE", padding: 20 },
+  logo: { width: 120, height: 120, marginBottom: 10, transform: [{ translateX: -10 }] },
+  subtitle: { fontSize: 16, color: "#333", marginBottom: 20 },
+  formContainer: {
+    width: "90%", maxWidth: 400, backgroundColor: "#fff", borderRadius: 20, padding: 25,
+    shadowColor: "#000", shadowOpacity: 0.15, shadowOffset: { width: 0, height: 2 }, shadowRadius: 5, elevation: 5
+  },
+  title: { fontSize: 22, color: theme.colors.primary, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
+  input: {
+    width: "100%", height: 50, borderColor: theme.colors.secondary, borderWidth: 1,
+    borderRadius: 10, paddingHorizontal: 10, marginBottom: 15, color: theme.colors.text
+  },
+  button: { backgroundColor: theme.colors.primary, padding: 15, borderRadius: 10, marginTop: 10 },
+  buttonText: { color: "#fff", fontWeight: "bold", textAlign: "center" },
+  registerText: { marginTop: 15, color: "#555", textAlign: "center" },
+  registerLink: { color: theme.colors.primary, fontWeight: "bold" },
 });
