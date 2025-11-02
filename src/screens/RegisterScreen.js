@@ -15,7 +15,7 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    // Trim de todos los campos
+
     const n = nombre.trim();
     const a = apellido.trim();
     const d = dni.trim();
@@ -23,13 +23,9 @@ export default function RegisterScreen({ navigation }) {
     const dir = direccion.trim();
     const pass = password;
 
-    // Validaciones básicas
-    if (!n || !a || !d || !t || !dir) {
-      Toast.show({ type: "error", text1: "Completá todos los campos" });
-      return;
-    }
-    if (!pass || pass.length < 6) {
-      Toast.show({ type: "error", text1: "Contraseña mínima 6 caracteres" });
+    const soloNumeros = /^\d+$/;
+    if (!soloNumeros.test(d)) {
+      Toast.show({ type: "error", text1: "El DNI debe contener solo números" });
       return;
     }
 
@@ -43,8 +39,13 @@ export default function RegisterScreen({ navigation }) {
         "auth/email-already-in-use": "El usuario ya está registrado",
         "auth/invalid-email": "DNI inválido",
         "auth/weak-password": "Contraseña débil",
+        "auth/invalid-credential": "Credenciales inválidas",
       };
-      Toast.show({ type: "error", text1: map[e?.code] || "Error al registrar" });
+      Toast.show({
+        type: "error",
+        text1: map[e?.code] || "Error al registrar",
+        text2: e?.message || "Completá todos los campos correctamente"
+      });
     } finally {
       setLoading(false);
     }

@@ -1,10 +1,58 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput ,ScrollView} from 'react-native';
+
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import React, { useEffect, useState } from 'react';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { auth } from '../lib/firebase'; // si ya usás Firebase Auth
 
 
-export default function OfertasScreen( { navigation }) {
+export default function OfertasScreen({ navigation }) {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState('monto');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const q = query(
+          collection(db, "offers"),
+          where("userId", "==", user.uid)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const offersData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+
+        setOffers(offersData);
+
+
+      } catch (error) {
+        console.error("Error al cargar ofertas:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOffers();
+  }, []);
+
+  // ----------------- Ordenamiento justo antes de renderizar -----------------
+  const sortedOffers = [...offers].sort((a, b) => {
+    if (sortBy === 'monto') return a.monto - b.monto;         // mayor a menor
+    if (sortBy === 'tiempoEspera') return a.tiempoEspera - b.tiempoEspera; // menor a mayor
+    return 0;
+  });
+
+
   return (
     <View style={styles.container}>
       {/* ------------------- BARRA SUPERIOR ------------------- */}
@@ -13,143 +61,135 @@ export default function OfertasScreen( { navigation }) {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="menu-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
-
-          {/* Spacer para ordenar iconos */}
-          <View style={{ flex: 1 }}/>
+          <View style={{ flex: 1 }} />
         </View>
-        
-
 
         <View style={styles.centerSection}>
           <TouchableOpacity style={styles.logoButton}>
             <Text style={styles.logoText}>RappiFarma</Text>
           </TouchableOpacity>
         </View>
-        
+
         <View style={styles.rightSection}>
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
-        
+
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="search" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
+
+
         </View>
       </View>
 
       {/* CONTENIDO PRINCIPAL */}
       <View style={styles.content}>
-        
-        {/* SECCIÓN DE FILTROS */}
-        <View style={styles.filtersSection}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search-outline" size={20} color={theme.colors.textMuted} />
-            <TextInput 
-              placeholder="Buscar farmacias..."
-              placeholderTextColor={theme.colors.textMuted}
-              style={styles.searchInput}
-            />
-          </View>
-          
-          <View style={styles.filterChips}>
-            <TouchableOpacity style={styles.filterChip}>
-              <Text style={styles.filterChipText}>Cercanas</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterChip}>
-              <Text style={styles.filterChipText}>24 horas</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterChip}>
-              <Text style={styles.filterChipText}>Descuentos</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
+        {/* ------------------- SECCIÓN DE FILTROS ------------------- */}
+        {!loading && (<>
+          {/* BOTÓN DE FILTRO */}
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowSortMenu(!showSortMenu)}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Filtrar</Text>
+          </TouchableOpacity>
+
+          {/* MENÚ DE SELECCIÓN */}
+          {showSortMenu && (
+            <View style={styles.sortMenu}>
+              <TouchableOpacity
+                onPress={() => { setSortBy('monto'); setShowSortMenu(false); }}
+              >
+                <Text style={{ fontWeight: 'bold', color: theme.colors.text, paddingVertical: 4 }}>
+                  Ordenar por Monto
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setSortBy('tiempoEspera'); setShowSortMenu(false); }}
+              >
+                <Text style={{ fontWeight: 'bold', color: theme.colors.text, paddingVertical: 4 }}>
+                  Ordenar por Tiempo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+        )}
 
         {/* SECCIÓN DE OFERTAS */}
-        <View style={styles.offersHeader}>
-          <Text style={styles.offersText}>Recibiste 4 ofertas</Text>
-        </View>
+        <Text style={styles.offersText}>
+          {loading ? "Cargando ofertas..." : `Recibiste ${offers.length} oferta${offers.length !== 1 ? "s" : ""}`}
+        </Text>
+
 
         {/* LISTA DE FARMACIAS */}
-        <ScrollView 
+        <ScrollView
           style={styles.pharmaciesList}
           showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity style={styles.pharmacyCard}>
-            <View style={styles.pharmacyIcon}>
-              <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
-            </View>
-            <View style={styles.pharmacyInfo}>
-              <Text style={styles.pharmacyName}>Farmacia ABC</Text>
-              <Text style={styles.pharmacyDetails}>24h • 1.2 km • Envío gratis</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.pharmacyCard}>
-            <View style={styles.pharmacyIcon}>
-              <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
-            </View>
-            <View style={styles.pharmacyInfo}>
-              <Text style={styles.pharmacyName}>Farmacia XYZ</Text>
-              <Text style={styles.pharmacyDetails}>Abierto • 0.8 km • 15% descuento</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-          </TouchableOpacity>
+          {loading ? (
+            <Text style={{ textAlign: "center", color: theme.colors.textMuted }}>
+              Cargando ofertas...
+            </Text>
+          ) : offers.length === 0 ? (
+            <Text style={{ textAlign: "center", color: theme.colors.textMuted }}>
+              No tenés ofertas por el momento.
+            </Text>
+          ) : (
 
-          <TouchableOpacity style={styles.pharmacyCard}>
-            <View style={styles.pharmacyIcon}>
-              <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
-            </View>
-            <View style={styles.pharmacyInfo}>
-              <Text style={styles.pharmacyName}>Farmacia 24/7</Text>
-              <Text style={styles.pharmacyDetails}>24h • 0.5 km • Delivery express</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-          </TouchableOpacity>
+            sortedOffers.map((offer) => (
+              <TouchableOpacity key={offer.id} style={styles.pharmacyCard}>
+                <View style={styles.pharmacyIcon}>
+                  <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
+                </View>
+                <View style={styles.pharmacyInfo}>
+                  <Text style={styles.pharmacyName}>{offer.farmacia}</Text>
+                  <Text style={styles.pharmacyDetails}>
+                    {offer.direccion} • ${offer.monto} • {offer.tiempoEspera} min
+                  </Text>
+                  <Text style={styles.productText}>{offer.nombreProducto}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
+              </TouchableOpacity>
+            ))
 
-          <TouchableOpacity style={styles.pharmacyCard}>
-            <View style={styles.pharmacyIcon}>
-              <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
-            </View>
-            <View style={styles.pharmacyInfo}>
-              <Text style={styles.pharmacyName}>FarmaPlus</Text>
-              <Text style={styles.pharmacyDetails}>Abierto • 1.8 km • 20% descuento</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-          </TouchableOpacity>
+          )}
+
         </ScrollView>
       </View>
 
       {/*-------------BARRA INFERIOR----------*/}
       <View style={styles.bottomBar}>
-        <View style={styles.leftSection}>     
-          <TouchableOpacity 
-          style={styles.iconButton}
-          onPress={() => navigation.replace('Home')}>
+        <View style={styles.leftSection}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => navigation.replace('Home')}>
             <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
             <Text style={styles.iconTextSecondary}>Home</Text>
           </TouchableOpacity>
-      
+
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="person-circle-outline" size={32} color={theme.colors.textMuted} />
             <Text style={styles.iconTextSecondary}>Perfil</Text>
           </TouchableOpacity>
         </View>
-      
-      {/* Spacer para ordenar iconos */}
-        <View style={{ flex: 1 }}/>  
-      
-        <View style={styles.rightSection}>                
-          <TouchableOpacity 
+
+        {/* Spacer para ordenar iconos */}
+        <View style={{ flex: 1 }} />
+
+        <View style={styles.rightSection}>
+          <TouchableOpacity
             style={styles.iconButton}
             onPress={() => navigation.navigate('Ofertas')}>
-              <Ionicons name="time-sharp" size={32} color={theme.colors.primary} />
-              <Text style={styles.iconTextPrimary}>Ofertas</Text>
+            <Ionicons name="time-sharp" size={32} color={theme.colors.primary} />
+            <Text style={styles.iconTextPrimary}>Ofertas</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="settings-outline" size={32} color={theme.colors.textMuted} />
             <Text style={styles.iconTextSecondary}>Ajustes</Text>
-          </TouchableOpacity>      
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -207,49 +247,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: theme.spacing.md,
   },
-  filtersSection: {
-    marginBottom: theme.spacing.lg,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.background2,
-    shadowColor: theme.colors.text,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  searchInput: {
-    flex: 1, 
-    marginLeft: theme.spacing.sm,
-    fontSize: theme.typography.fontSize.medium,
-    color: theme.colors.text,
-  },
-  filterChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-  },
-  filterChip: {
-    backgroundColor: theme.colors.primary + '15', // Color con transparencia
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
-  },
-  filterChipText: {
-    fontSize: theme.typography.fontSize.small,
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.bold,
-  },
+
   offersHeader: {
     marginBottom: theme.spacing.md,
     paddingHorizontal: theme.spacing.xs,
@@ -299,14 +297,15 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.small,
     color: theme.colors.textMuted,
   },
-   logoButton: {
+  logoButton: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
-   iconButton: {
+  iconButton: {
     alignItems: 'center',
     padding: theme.spacing.sm,
+    justifyContent: 'flex-end'
   },
   bottomBar: {
     flexDirection: 'row',
@@ -321,13 +320,40 @@ const styles = StyleSheet.create({
   },
   iconTextSecondary: {
     fontSize: theme.typography.fontSize.small,
-    marginTop: 2 , //Espacio entre icono y texto del icono
+    marginTop: 2, //Espacio entre icono y texto del icono
     color: theme.colors.textMuted
   },
   iconTextPrimary: {
     fontSize: theme.typography.fontSize.small,
     fontWeight: theme.typography.fontWeight.bold,
-    marginTop: 2 , //Espacio entre icono y texto del icono
-    color: theme.colors.primary 
-   },
+    marginTop: 2, //Espacio entre icono y texto del icono
+    color: theme.colors.primary
+  },
+  filterButton: {
+
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
+    zIndex: 1000,
+
+  },
+  sortMenu: {
+    position: 'absolute',
+    top: 50, // debajo del botón
+    right: 10,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    elevation: 5,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 1000,
+  }
 });
