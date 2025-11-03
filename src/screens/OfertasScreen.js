@@ -47,7 +47,7 @@ export default function OfertasScreen({ navigation }) {
 
   // ----------------- Ordenamiento justo antes de renderizar -----------------
   const sortedOffers = [...offers].sort((a, b) => {
-    if (sortBy === 'monto') return a.monto - b.monto;         // mayor a menor
+    if (sortBy === 'monto') return a.monto - b.monto;
     if (sortBy === 'tiempoEspera') return a.tiempoEspera - b.tiempoEspera; // menor a mayor
     return 0;
   });
@@ -128,6 +128,7 @@ export default function OfertasScreen({ navigation }) {
         <ScrollView
           style={styles.pharmaciesList}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: 15 }}
         >
           {loading ? (
             <Text style={{ textAlign: "center", color: theme.colors.textMuted }}>
@@ -135,12 +136,12 @@ export default function OfertasScreen({ navigation }) {
             </Text>
           ) : offers.length === 0 ? (
             <Text style={{ textAlign: "center", color: theme.colors.textMuted }}>
-              No tenés ofertas por el momento.
+              Aún no hay ofertas disponibles. Recibirás una notificación cuando lleguen
             </Text>
           ) : (
 
             sortedOffers.map((offer) => (
-              <TouchableOpacity key={offer.id} style={styles.pharmacyCard}>
+              <View key={offer.id} style={styles.pharmacyCard}>
                 <View style={styles.pharmacyIcon}>
                   <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
                 </View>
@@ -151,8 +152,25 @@ export default function OfertasScreen({ navigation }) {
                   </Text>
                   <Text style={styles.productText}>{offer.nombreProducto}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={theme.colors.textMuted} />
-              </TouchableOpacity>
+
+                {/* Botones de acción */}
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.acceptButton]}
+                    onPress={() => handleAccept(offer)}
+                  >
+                    <Ionicons name="checkmark" size={28} color="green" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.rejectButton]}
+                    onPress={() => handleReject(offer)}
+                  >
+                    <Ionicons name="close" size={28} color="red" />
+                  </TouchableOpacity>
+                </View>
+
+              </View>
             ))
 
           )}
@@ -355,5 +373,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     zIndex: 1000,
-  }
+  },
+  actionButtons: {
+    flexDirection: 'row',          // ← los coloca horizontalmente
+    alignItems: 'center',
+    justifyContent: 'flex-end',    // los alinea a la derecha del card
+    gap: 10,                       // espacio entre los botones (RN 0.71+)
+  },
+
+  actionButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.background2,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+
+  acceptButton: {
+    backgroundColor: '#e6ffe6', // fondo suave verde
+  },
+
+  rejectButton: {
+    backgroundColor: '#ffe6e6', // fondo suave rojo
+  },
 });
