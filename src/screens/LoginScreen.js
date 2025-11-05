@@ -1,40 +1,41 @@
-import React, { useState } from 'react';
-import {
-  View, Text, TextInput, Pressable, StyleSheet, TouchableOpacity, ActivityIndicator
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../styles/theme';
-import { signIn } from '../features/auth/actions';
+import { useState } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from "react-native";
+import Toast from "react-native-toast-message";
+import { theme } from "../styles/theme";
+import PasswordInput from "../components/PasswordInput";
+import { signIn } from "../features/auth/actions";
 
 export default function LoginScreen({ navigation }) {
-  const [dni, setDni] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [dni, setDni] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const mapFirebaseError = (code) => {
-    switch (code) {
-      case 'auth/invalid-email': return 'DNI inválido.';
-      case 'auth/missing-password': return 'Ingresá tu contraseña.';
-      case 'auth/invalid-credential':
-      case 'auth/wrong-password': return 'Credenciales incorrectas.';
-      case 'auth/user-not-found': return 'Usuario no encontrado.';
-      default: return 'Error al iniciar sesión.';
-    }
-  };
 
   const handleLogin = async () => {
-    setError('');
-    if (!dni.trim()) return setError('Ingresá tu DNI.');
-    if (!password) return setError('Ingresá tu contraseña.');
+    const d = dni.trim();
+    const pass = password;
+
+    if (!d) {
+      Toast.show({ type: "error", text1: "Ingresá tu DNI" });
+      return;
+    }
+    if (!pass || pass.length < 6) {
+      Toast.show({ type: "error", text1: "La contraseña debe tener al menos 6 caracteres." });
+      return;
+    }
 
     try {
       setLoading(true);
-      await signIn(dni.trim(), password);
-      navigation.replace('Home');
+      await signIn(d, pass);
+      Toast.show({ type: "success", text1: "Login exitoso" });
+      navigation.navigate("Home");
     } catch (e) {
-      setError(mapFirebaseError(e?.code));
+      const map = {
+        "auth/invalid-credential": "Credenciales inválidas",
+        "auth/user-not-found": "Usuario no encontrado",
+        "auth/wrong-password": "Contraseña incorrecta",
+        "auth/too-many-requests": "Demasiados intentos. Probá más tarde",
+      };
+      Toast.show({ type: "error", text1: map[e?.code] || "No se pudo iniciar sesión" });
     } finally {
       setLoading(false);
     }
@@ -42,59 +43,67 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Iniciar Sesión</Text>
+      <View style={styles.formContainer}>
+        <Image
+          source={require("../../assets/adaptive-icon.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>RappiFarma</Text>
+        <Text style={styles.subtitle}>Ingresá tus datos para acceder a tu cuenta</Text>
 
-      {!!error && <Text style={styles.errorText}>{error}</Text>}
-
-      <TextInput
-        style={styles.input}
-        placeholder="DNI"
-        value={dni}
-        onChangeText={setDni}
-        keyboardType="numeric"
-      />
-
-      <View style={styles.inputWrapper}>
+        <Text style={styles.Text}>DNI</Text>
         <TextInput
-          style={styles.inputWithIcon}
-          placeholder="Contraseña"
+          style={styles.input}
+          placeholder="Ej: 12345678"
+          placeholderTextColor={theme.colors.textMuted}
+          value={dni}
+          onChangeText={setDni}
+          keyboardType="numeric"
+        />
+
+        <Text style={styles.Text}>Contraseña</Text>
+        <PasswordInput
           value={password}
           onChangeText={setPassword}
-          secureTextEntry={!showPassword}
+          placeholder="Contraseña"
         />
-        <Pressable onPress={() => setShowPassword(!showPassword)} style={styles.iconButton}>
-          <Ionicons
-            name={showPassword ? 'eye-off' : 'eye'}
-            size={22}
-            color={theme.colors.textMuted}
-          />
-        </Pressable>
-      </View>
 
-      <Pressable style={[styles.loginButton, loading && { opacity: 0.7 }]} onPress={handleLogin} disabled={loading}>
-        {loading ? <ActivityIndicator color={theme.colors.background} /> : <Text style={styles.loginButtonText}>Iniciar Sesión</Text>}
-      </Pressable>
-
-      <View style={styles.registerContainer}>
-        <Text>¿No tenés cuenta? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.registerText}>Registrate</Text>
+        <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? "..." : "Iniciar sesión"}</Text>
         </TouchableOpacity>
+
+        <Text style={styles.registerText}>
+          ¿No tenés cuenta?
+          <TouchableOpacity onPress={() => navigation.replace("Register")}>
+            <Text style={styles.registerLink}> Registrate</Text>
+          </TouchableOpacity>
+        </Text>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background, padding: theme.spacing.lg, justifyContent: 'center' },
-  title: { fontSize: theme.typography.fontSize.title, fontWeight: theme.typography.fontWeight.bold, color: theme.colors.primary, marginBottom: theme.spacing.xl, textAlign: 'center' },
-  errorText: { color: theme.colors.danger, textAlign: 'center', marginBottom: theme.spacing.sm },
-  input: { borderWidth: 1, borderColor: theme.colors.textMuted, borderRadius: theme.borderRadius.sm, padding: theme.spacing.md, marginBottom: theme.spacing.md, fontSize: theme.typography.fontSize.medium, color: theme.colors.text },
-  inputWrapper: { position: 'relative', marginBottom: theme.spacing.md },
-  inputWithIcon: { borderWidth: 1, borderColor: theme.colors.textMuted, borderRadius: theme.borderRadius.sm, paddingVertical: theme.spacing.md, paddingLeft: theme.spacing.md, paddingRight: 40, fontSize: theme.typography.fontSize.medium, color: theme.colors.text },
-  iconButton: { position: 'absolute', right: theme.spacing.md, top: '50%', transform: [{ translateY: -12 }] },
-  loginButton: { backgroundColor: theme.colors.primary, borderRadius: theme.borderRadius.md, paddingVertical: theme.spacing.md, marginTop: theme.spacing.lg, alignItems: 'center' },
-  loginButtonText: { color: theme.colors.background, fontWeight: theme.typography.fontWeight.bold, fontSize: theme.typography.fontSize.medium },
-  registerContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: theme.spacing.md },
-  registerText: { color: theme.colors.secondary, fontWeight: theme.typography.fontWeight.bold },
+  container: {
+    flex: 1, justifyContent: "center", alignItems: "center",
+    backgroundColor: theme.colors.background3, padding: 20,
+  },
+  formContainer: {
+    width: "30%", minWidth: 350, justifyContent: "center",
+    backgroundColor: theme.colors.background, borderRadius: 20, padding: 25,
+    shadowColor: "#000", shadowOpacity: 0.15, shadowOffset: { width: 0, height: 2 }, shadowRadius: 5,
+  },
+  title: { fontSize: 25, color: theme.colors.primary, fontWeight: "bold", marginBottom: 10, textAlign: "center" },
+  logo: { width: 150, height: 150, marginBottom: 10, alignSelf: "center", transform: [{ translateX: -20 }] },
+  subtitle: { fontSize: 15, color: theme.colors.textMuted, marginBottom: 20, textAlign: "center" },
+  Text: { color: theme.colors.text, fontWeight: "bold", textAlign: "left", marginBottom: 2 },
+  input: {
+    width: "100%", height: 50, borderColor: theme.colors.secondary, borderWidth: 1,
+    borderRadius: 10, paddingHorizontal: 10, marginBottom: 15,
+  },
+  button: { backgroundColor: theme.colors.primary, padding: 15, borderRadius: 10, width: "40%", alignSelf: "center" },
+  buttonText: { color: "#fff", fontWeight: "bold", alignSelf: "center" },
+  registerText: { marginTop: 15, color: theme.colors.text, textAlign: "center" },
+  registerLink: { color: theme.colors.primary, fontWeight: "bold" },
 });
