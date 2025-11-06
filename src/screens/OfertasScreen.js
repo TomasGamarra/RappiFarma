@@ -1,4 +1,3 @@
-
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
@@ -95,7 +94,6 @@ export default function OfertasScreen({ navigation }) {
           <Text style={styles.logoText}>Ofertas</Text>
         </View>
 
-
         <View style={styles.rightSection}>
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
@@ -104,8 +102,6 @@ export default function OfertasScreen({ navigation }) {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="search" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
-
-
         </View>
       </View>
 
@@ -148,7 +144,6 @@ export default function OfertasScreen({ navigation }) {
         <Text style={styles.offersText}>
           {loading ? "Cargando ofertas..." : `Recibiste ${offers.length} oferta${offers.length !== 1 ? "s" : ""}`}
         </Text>
-
 
         {/* LISTA DE FARMACIAS */}
         <ScrollView
@@ -198,44 +193,15 @@ export default function OfertasScreen({ navigation }) {
 
               </View>
             ))
-
           )}
-
         </ScrollView>
       </View>
 
-      {/*-------------BARRA INFERIOR----------*/}
-      <View style={styles.bottomBar}>
-        <View style={styles.leftSection}>     
-          <TouchableOpacity 
-          style={styles.iconButton}
-          onPress={() => navigation.replace('Home')}>
-            <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
-            <Text style={styles.iconTextSecondary}>Home</Text>
-          </TouchableOpacity>
-      
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="person-circle-outline" size={32} color={theme.colors.textMuted} />
-            <Text style={styles.iconTextSecondary}>Perfil</Text>
-          </TouchableOpacity>
-        </View>
-      
-      {/* Spacer para ordenar iconos */}
-        <View style={{ flex: 1 }}/>  
-      
-        <View style={styles.rightSection}>                
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => navigation.navigate('Ofertas')}>
-              <Ionicons name="time-sharp" size={32} color={theme.colors.primary} />
-              <Text style={styles.iconTextPrimary}>Ofertas</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="settings-outline" size={32} color={theme.colors.textMuted} />
-            <Text style={styles.iconTextSecondary}>Ajustes</Text>
-          </TouchableOpacity>      
-        </View>
-      </View>
+      {/* BOTTOM NAVIGATION ACTUALIZADO */}
+      <BottomNavigation 
+        currentScreen="ofertas" 
+        onNavigate={handleNavigation}
+      />
     </View>
   );
 };
@@ -289,59 +255,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: theme.spacing.lg,
   },
-  offersHeader: {
-    marginBottom: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xs,
-  },
-  offersText: {
-    fontSize: theme.typography.fontSize.large,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.background2,
-    shadowColor: theme.colors.text,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  searchInput: {
-    flex: 1, 
-    marginLeft: theme.spacing.sm,
-    fontSize: theme.typography.fontSize.medium,
-    color: theme.colors.text,
-  },
-  filterChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
-  },
-  filterChip: {
-    backgroundColor: theme.colors.primary + '15', // Color con transparencia
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
-  },
-  filterChipText: {
-    fontSize: theme.typography.fontSize.small,
-    color: theme.colors.primary,
-    fontWeight: theme.typography.fontWeight.bold,
-  },
-  offersHeader: {
-    marginBottom: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xs,
-  },
   offersText: {
     fontSize: theme.typography.fontSize.large,
     fontWeight: theme.typography.fontWeight.bold,
@@ -354,24 +267,14 @@ const styles = StyleSheet.create({
     top: 10,
     right: 10,
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: theme.borderRadius.md,
     zIndex: 1000,
-    elevation: 4,
-    shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  filterButtonText: {
-    color: theme.colors.background,
-    fontWeight: theme.typography.fontWeight.bold,
-    fontSize: theme.typography.fontSize.small,
   },
   sortMenu: {
     position: 'absolute',
-    top: 50,
+    top: 50, // debajo del botón
     right: 10,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.md,
@@ -383,50 +286,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
     zIndex: 1000,
-    borderWidth: 1,
-    borderColor: theme.colors.background2,
-  },
-  sortOption: {
-    paddingVertical: theme.spacing.sm,
-  },
-  sortOptionText: {
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text,
-    fontSize: theme.typography.fontSize.medium,
   },
   pharmaciesList: {
     flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: theme.spacing.sm,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing.xl,
-  },
-  loadingText: {
-    textAlign: 'center',
-    color: theme.colors.textMuted,
-    fontSize: theme.typography.fontSize.medium,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: theme.spacing.xl * 2,
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: theme.colors.textMuted,
-    fontSize: theme.typography.fontSize.medium,
-    fontWeight: theme.typography.fontWeight.bold,
-    marginTop: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-  },
-  emptySubtext: {
-    textAlign: 'center',
-    color: theme.colors.textMuted,
-    fontSize: theme.typography.fontSize.small,
   },
   pharmacyCard: {
     backgroundColor: theme.colors.background,
@@ -475,12 +337,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: theme.spacing.sm,
+    gap: 10,
   },
   actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.background2,
@@ -495,91 +357,5 @@ const styles = StyleSheet.create({
   },
   rejectButton: {
     backgroundColor: '#ffe6e6',
-  },
-  logoButton: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-   iconButton: {
-    alignItems: 'center',
-    padding: theme.spacing.sm,
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderColor: theme.colors.background,
-    position: 'relative',
-  },
-  iconTextSecondary: {
-    fontSize: theme.typography.fontSize.small,
-    marginTop: 2, //Espacio entre icono y texto del icono
-    color: theme.colors.textMuted
-  },
-  iconTextPrimary: {
-    fontSize: theme.typography.fontSize.small,
-    fontWeight: theme.typography.fontWeight.bold,
-    marginTop: 2, //Espacio entre icono y texto del icono
-    color: theme.colors.primary
-  },
-  filterButton: {
-
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
-    zIndex: 1000,
-
-  },
-  sortMenu: {
-    position: 'absolute',
-    top: 50, // debajo del botón
-    right: 10,
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.md,
-    paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.md,
-    elevation: 5,
-    shadowColor: theme.colors.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    zIndex: 1000,
-  },
-  actionButtons: {
-    flexDirection: 'row',          // ← los coloca horizontalmente
-    alignItems: 'center',
-    justifyContent: 'flex-end',    // los alinea a la derecha del card
-    gap: 10,                       // espacio entre los botones (RN 0.71+)
-  },
-
-  actionButton: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.background2,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-  },
-
-  acceptButton: {
-    backgroundColor: '#e6ffe6', // fondo suave verde
-  },
-
-  rejectButton: {
-    backgroundColor: '#ffe6e6', // fondo suave rojo
   },
 });
