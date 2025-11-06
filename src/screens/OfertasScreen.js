@@ -1,10 +1,63 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
+import React, { useEffect, useState } from 'react';
+import { collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import BottomNavigation from '../components/BottomNavigation';
 
-const OfertasScreen = ({ navigation }) => {
+
+export default function OfertasScreen({ navigation }) {
+  const [offers, setOffers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState('monto');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const q = query(
+      collection(db, "offers"),
+      where("userId", "==", user.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const offersData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setOffers(offersData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error al escuchar cambios en ofertas:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Funciones para manejar aceptar/rechazar ofertas
+  const handleAccept = (offer) => {
+    console.log('Oferta aceptada:', offer);
+    // Aquí va tu lógica para aceptar la oferta
+  };
+
+  const handleReject = (offer) => {
+    console.log('Oferta rechazada:', offer);
+    // Aquí va tu lógica para rechazar la oferta
+  };
+
+  // Ordenamiento justo antes de renderizar
+  const sortedOffers = [...offers].sort((a, b) => {
+    if (sortBy === 'monto') return a.monto - b.monto;
+    if (sortBy === 'tiempoEspera') return a.tiempoEspera - b.tiempoEspera;
+    return 0;
+  });
+
+  // Navegación del Bottom Navigation
   const handleNavigation = (screen) => {
     switch (screen) {
       case 'home':
@@ -14,8 +67,7 @@ const OfertasScreen = ({ navigation }) => {
         navigation.navigate('Profile');
         break;
       case 'scan':
-        // Redirigir al home para escanear
-        navigation.navigate('Home');
+        navigation.navigate('Home'); // Redirigir al home para escanear
         break;
       case 'ofertas':
         // Ya estamos en ofertas
@@ -27,13 +79,6 @@ const OfertasScreen = ({ navigation }) => {
         navigation.navigate('Home');
     }
   };
-
-  // Datos de ejemplo para ofertas
-  const ofertas = [
-    { id: 1, farmacia: 'Farmacia ABC', descuento: '20%', descripcion: 'En productos seleccionados' },
-    { id: 2, farmacia: 'Farmacia XYZ', descuento: '15%', descripcion: 'En tu primera compra' },
-    { id: 3, farmacia: 'FarmaPlus', descuento: '10%', descripcion: 'Envío gratis + descuento' },
-  ];
 
   return (
     <View style={styles.container}>
@@ -50,42 +95,147 @@ const OfertasScreen = ({ navigation }) => {
           <Text style={styles.logoText}>Ofertas</Text>
         </View>
 
+
         <View style={styles.rightSection}>
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="search" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
+
+
         </View>
       </View>
 
-      {/* Contenido Principal */}
-      <ScrollView style={styles.content}>
-        <Text style={styles.title}>Ofertas Disponibles</Text>
-        <Text style={styles.subtitle}>Encuentra las mejores promociones en farmacias cercanas</Text>
-        
-        {ofertas.map((oferta) => (
-          <View key={oferta.id} style={styles.ofertaCard}>
-            <View style={styles.ofertaHeader}>
-              <Text style={styles.farmaciaNombre}>{oferta.farmacia}</Text>
-              <View style={styles.descuentoBadge}>
-                <Text style={styles.descuentoText}>{oferta.descuento}</Text>
-              </View>
-            </View>
-            <Text style={styles.ofertaDescripcion}>{oferta.descripcion}</Text>
-            <TouchableOpacity style={styles.verOfertaButton}>
-              <Text style={styles.verOfertaText}>Ver oferta</Text>
-            </TouchableOpacity>
-          </View>
-        ))}
-      </ScrollView>
+      {/* CONTENIDO PRINCIPAL */}
+      <View style={styles.content}>
 
-      {/* Bottom Navigation - SIN scanComponent */}
-      <BottomNavigation 
-        currentScreen="ofertas" 
-        onNavigate={handleNavigation}
-      />
+        {/* ------------------- SECCIÓN DE FILTROS ------------------- */}
+        {!loading && (<>
+          {/* BOTÓN DE FILTRO */}
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowSortMenu(!showSortMenu)}
+          >
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Filtrar</Text>
+          </TouchableOpacity>
+
+          {/* MENÚ DE SELECCIÓN */}
+          {showSortMenu && (
+            <View style={styles.sortMenu}>
+              <TouchableOpacity
+                onPress={() => { setSortBy('monto'); setShowSortMenu(false); }}
+              >
+                <Text style={{ fontWeight: 'bold', color: theme.colors.text, paddingVertical: 4 }}>
+                  Ordenar por Monto
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { setSortBy('tiempoEspera'); setShowSortMenu(false); }}
+              >
+                <Text style={{ fontWeight: 'bold', color: theme.colors.text, paddingVertical: 4 }}>
+                  Ordenar por Tiempo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+        )}
+
+        {/* SECCIÓN DE OFERTAS */}
+        <Text style={styles.offersText}>
+          {loading ? "Cargando ofertas..." : `Recibiste ${offers.length} oferta${offers.length !== 1 ? "s" : ""}`}
+        </Text>
+
+
+        {/* LISTA DE FARMACIAS */}
+        <ScrollView
+          style={styles.pharmaciesList}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingTop: 15 }}
+        >
+          {loading ? (
+            <Text style={{ textAlign: "center", color: theme.colors.textMuted }}>
+              Cargando ofertas...
+            </Text>
+          ) : offers.length === 0 ? (
+            <Text style={{ textAlign: "center", color: theme.colors.textMuted }}>
+              Aún no hay ofertas disponibles. Recibirás una notificación cuando lleguen
+            </Text>
+          ) : (
+
+            sortedOffers.map((offer) => (
+              <View key={offer.id} style={styles.pharmacyCard}>
+                <View style={styles.pharmacyIcon}>
+                  <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
+                </View>
+                <View style={styles.pharmacyInfo}>
+                  <Text style={styles.pharmacyName}>{offer.farmacia}</Text>
+                  <Text style={styles.pharmacyDetails}>
+                    {offer.direccion} • ${offer.monto} • {offer.tiempoEspera} min
+                  </Text>
+                  <Text style={styles.productText}>{offer.nombreProducto}</Text>
+                </View>
+
+                {/* Botones de acción */}
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.acceptButton]}
+                    onPress={() => handleAccept(offer)}
+                  >
+                    <Ionicons name="checkmark" size={28} color="green" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.rejectButton]}
+                    onPress={() => handleReject(offer)}
+                  >
+                    <Ionicons name="close" size={28} color="red" />
+                  </TouchableOpacity>
+                </View>
+
+              </View>
+            ))
+
+          )}
+
+        </ScrollView>
+      </View>
+
+      {/*-------------BARRA INFERIOR----------*/}
+      <View style={styles.bottomBar}>
+        <View style={styles.leftSection}>     
+          <TouchableOpacity 
+          style={styles.iconButton}
+          onPress={() => navigation.replace('Home')}>
+            <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
+            <Text style={styles.iconTextSecondary}>Home</Text>
+          </TouchableOpacity>
+      
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="person-circle-outline" size={32} color={theme.colors.textMuted} />
+            <Text style={styles.iconTextSecondary}>Perfil</Text>
+          </TouchableOpacity>
+        </View>
+      
+      {/* Spacer para ordenar iconos */}
+        <View style={{ flex: 1 }}/>  
+      
+        <View style={styles.rightSection}>                
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Ofertas')}>
+              <Ionicons name="time-sharp" size={32} color={theme.colors.primary} />
+              <Text style={styles.iconTextPrimary}>Ofertas</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="settings-outline" size={32} color={theme.colors.textMuted} />
+            <Text style={styles.iconTextSecondary}>Ajustes</Text>
+          </TouchableOpacity>      
+        </View>
+      </View>
     </View>
   );
 };
@@ -139,24 +289,152 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: theme.spacing.lg,
   },
-  title: {
-    fontSize: theme.typography.fontSize.xl,
+  offersHeader: {
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  offersText: {
+    fontSize: theme.typography.fontSize.large,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.text,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.colors.background2,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  searchInput: {
+    flex: 1, 
+    marginLeft: theme.spacing.sm,
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.text,
+  },
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  filterChip: {
+    backgroundColor: theme.colors.primary + '15', // Color con transparencia
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.primary + '30',
+  },
+  filterChipText: {
+    fontSize: theme.typography.fontSize.small,
+    color: theme.colors.primary,
+    fontWeight: theme.typography.fontWeight.bold,
+  },
+  offersHeader: {
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.xs,
+  },
+  offersText: {
+    fontSize: theme.typography.fontSize.large,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
     marginBottom: theme.spacing.sm,
     textAlign: 'center',
   },
-  subtitle: {
-    fontSize: theme.typography.fontSize.medium,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
-    marginBottom: theme.spacing.xl,
+  filterButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+    zIndex: 1000,
+    elevation: 4,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  ofertaCard: {
+  filterButtonText: {
+    color: theme.colors.background,
+    fontWeight: theme.typography.fontWeight.bold,
+    fontSize: theme.typography.fontSize.small,
+  },
+  sortMenu: {
+    position: 'absolute',
+    top: 50,
+    right: 10,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    elevation: 5,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 1000,
+    borderWidth: 1,
+    borderColor: theme.colors.background2,
+  },
+  sortOption: {
+    paddingVertical: theme.spacing.sm,
+  },
+  sortOptionText: {
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.text,
+    fontSize: theme.typography.fontSize.medium,
+  },
+  pharmaciesList: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: theme.spacing.sm,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl,
+  },
+  loadingText: {
+    textAlign: 'center',
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.fontSize.medium,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 2,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.fontSize.medium,
+    fontWeight: theme.typography.fontWeight.bold,
+    marginTop: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+  },
+  emptySubtext: {
+    textAlign: 'center',
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.fontSize.small,
+  },
+  pharmacyCard: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: theme.colors.background2,
     shadowColor: theme.colors.text,
@@ -165,45 +443,143 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  ofertaHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  pharmacyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: theme.colors.primary + '15',
     alignItems: 'center',
-    marginBottom: theme.spacing.sm,
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
   },
-  farmaciaNombre: {
+  pharmacyInfo: {
+    flex: 1,
+  },
+  pharmacyName: {
     fontSize: theme.typography.fontSize.medium,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
+    marginBottom: 2,
   },
-  descuentoBadge: {
-    backgroundColor: theme.colors.primary + '20',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    borderRadius: theme.borderRadius.lg,
-  },
-  descuentoText: {
-    fontSize: theme.typography.fontSize.small,
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
-  },
-  ofertaDescripcion: {
+  pharmacyDetails: {
     fontSize: theme.typography.fontSize.small,
     color: theme.colors.textMuted,
-    marginBottom: theme.spacing.md,
+    marginBottom: 2,
   },
-  verOfertaButton: {
+  productText: {
+    fontSize: theme.typography.fontSize.small,
+    color: theme.colors.primary,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: theme.spacing.sm,
+  },
+  actionButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.background2,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  acceptButton: {
+    backgroundColor: '#e6ffe6',
+  },
+  rejectButton: {
+    backgroundColor: '#ffe6e6',
+  },
+  logoButton: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+   iconButton: {
+    alignItems: 'center',
+    padding: theme.spacing.sm,
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderColor: theme.colors.background,
+    position: 'relative',
+  },
+  iconTextSecondary: {
+    fontSize: theme.typography.fontSize.small,
+    marginTop: 2, //Espacio entre icono y texto del icono
+    color: theme.colors.textMuted
+  },
+  iconTextPrimary: {
+    fontSize: theme.typography.fontSize.small,
+    fontWeight: theme.typography.fontWeight.bold,
+    marginTop: 2, //Espacio entre icono y texto del icono
+    color: theme.colors.primary
+  },
+  filterButton: {
+
+    position: 'absolute',
+    top: 10,
+    right: 10,
     backgroundColor: theme.colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
+    zIndex: 1000,
+
+  },
+  sortMenu: {
+    position: 'absolute',
+    top: 50, // debajo del botón
+    right: 10,
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
+    elevation: 5,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 1000,
   },
-  verOfertaText: {
-    color: theme.colors.background,
-    fontWeight: theme.typography.fontWeight.bold,
-    fontSize: theme.typography.fontSize.small,
+  actionButtons: {
+    flexDirection: 'row',          // ← los coloca horizontalmente
+    alignItems: 'center',
+    justifyContent: 'flex-end',    // los alinea a la derecha del card
+    gap: 10,                       // espacio entre los botones (RN 0.71+)
+  },
+
+  actionButton: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.background2,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+
+  acceptButton: {
+    backgroundColor: '#e6ffe6', // fondo suave verde
+  },
+
+  rejectButton: {
+    backgroundColor: '#ffe6e6', // fondo suave rojo
   },
 });
-
-export default OfertasScreen;
