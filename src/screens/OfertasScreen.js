@@ -1,9 +1,9 @@
 
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDocs, doc, deleteDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 
@@ -16,14 +16,18 @@ export default function OfertasScreen({ navigation }) {
   const [showSortMenu, setShowSortMenu] = useState(false);
 
 
+
+
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
 
     const q = query(
       collection(db, "offers"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      where("state", "==", "Pendiente")
     );
+
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const offersData = querySnapshot.docs.map((doc) => ({
@@ -41,12 +45,57 @@ export default function OfertasScreen({ navigation }) {
   }, []);
 
 
+
   // ----------------- Ordenamiento justo antes de renderizar -----------------
   const sortedOffers = [...offers].sort((a, b) => {
     if (sortBy === 'monto') return a.monto - b.monto;
     if (sortBy === 'tiempoEspera') return a.tiempoEspera - b.tiempoEspera; // menor a mayor
     return 0;
   });
+
+
+  const handleAccept = async (selectedOffer) => {
+    try {
+      // Cambiar estado de la oferta seleccionada a "Aceptada"
+      await updateDoc(doc(db, "offers", selectedOffer.id), {
+        state: "Aceptada",
+      });
+
+      // Traer todas las ofertas del usuario
+      const q = query(
+        collection(db, "offers"),
+        where("userId", "==", auth.currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
+
+      // Eliminar todas las demás ofertas
+      const batchDeletions = querySnapshot.docs.map(async (docSnap) => {
+        if (docSnap.id !== selectedOffer.id) {
+          await deleteDoc(doc(db, "offers", docSnap.id));
+        }
+      });
+      await Promise.all(batchDeletions);
+
+      // Mostrar notificación (alerta temporal arriba)
+      Alert.alert("✅ Oferta aceptada", "Se ha confirmado tu pedido con la farmacia.");
+
+      // Limpiar de la UI local (ya que la snapshot se actualizará sola)
+      setOffers([]);
+    } catch (error) {
+      console.error("Error al aceptar oferta:", error);
+      Alert.alert("Error", "No se pudo aceptar la oferta. Intenta de nuevo.");
+    }
+  };
+
+
+  const handleReject = async (offer) => {
+    try {
+      await deleteDoc(doc(db, "offers", offer.id));
+    } catch (error) {
+      console.error("Error al eliminar oferta:", error);
+      Alert.alert("Error", "No se pudo rechazar la oferta. Intenta nuevamente.");
+    }
+  };
 
 
   return (
@@ -144,7 +193,7 @@ export default function OfertasScreen({ navigation }) {
                 <View style={styles.pharmacyInfo}>
                   <Text style={styles.pharmacyName}>{offer.farmacia}</Text>
                   <Text style={styles.pharmacyDetails}>
-                    {offer.direccion} • ${offer.monto} • {offer.tiempoEspera} min
+                    {offer.direccion} • ${offer.preciototal} • {offer.tiempoEspera} min
                   </Text>
                   <Text style={styles.productText}>{offer.nombreProducto}</Text>
                 </View>
