@@ -6,6 +6,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import Toast from "react-native-toast-message";
 import OfertasScreen from './src/screens/OfertasScreen';
 import PerfilScreen from './src/screens/PerfilScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -13,7 +14,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator 
-      initialRouteName="Login"
+      initialRouteName="Profile"
       screenOptions={{ 
           animation: 'fade',
           animationDuration: 150, // ← DURACIÓN EXPLÍCITA
@@ -21,6 +22,7 @@ export default function App() {
           gestureDirection: 'horizontal', // ← DIRECCIÓN DEL GESTO
         }}
       >
+        <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile'}} />
         <Stack.Screen name="Login" component={LoginScreen} options={{ title: 'Inicio'}} />
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Inicio' }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Registro' }} />

@@ -1,27 +1,76 @@
-// Esta home es de Rama-Fede
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import OpenCameraButton from '../components/OpenCameraButton'; // 👈 tu botón cámara
-import ButtonPrimary from '../components/ButtonPrimary'; // 👈 tu botón genérico
+import OpenCameraButton from '../components/OpenCameraButton';
+import ButtonPrimary from '../components/ButtonPrimary';
+import BottomNavigation from '../components/BottomNavigation';
 import { theme } from '../styles/theme';
 import Toast from "react-native-toast-message";
 import { createRequestWithPhoto } from "../features/requests/actions";
 
-
-
 export default function HomeScreen({ navigation }) {
+  
+  const handleScan = async (asset) => {
+    try {
+      const { requestId } = await createRequestWithPhoto({ imageUri: asset.uri });
+      Toast.show({ 
+        type: "success", 
+        text1: "Receta enviada", 
+        text2: `Solicitud: ${requestId}` 
+      });
+      navigation.replace('Ofertas');
+    } catch (e) {
+      Toast.show({ 
+        type: "error", 
+        text1: "No se pudo enviar la receta", 
+        text2: e.message || "" 
+      });
+    }
+  };
+
+  const handleNavigation = (screen) => {
+    switch (screen) {
+      case 'home':
+        // Ya estamos en home
+        break;
+      case 'profile':
+        navigation.navigate('Profile');
+        break;
+      case 'scan':
+        // La funcionalidad de escaneo está en el OpenCameraButton del BottomNavigation
+        break;
+      case 'ofertas':
+        navigation.navigate('Ofertas');
+        break;
+      case 'settings':
+        navigation.navigate('Ajustes');
+        break;
+      default:
+        navigation.navigate('Home');
+    }
+  };
+
+  // Componente de escaneo para el BottomNavigation
+  const ScanButtonComponent = (
+    <OpenCameraButton
+      onPick={handleScan}
+      icon={<Ionicons name="scan-outline" size={28} color="#fff" />}
+      color={theme.colors.primary}
+      size={60}
+      style={styles.scanButton}
+    />
+  );
+
   return (
     <View style={styles.container}>
       {/* ------------------- BARRA SUPERIOR ------------------- */}
       <View style={styles.topBar}>
         <View style={styles.leftSection}>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="menu-outline" size={28} color= {theme.colors.primary} />
+            <Ionicons name="menu-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
 
-        {/* Spacer para ordenar iconos */}
           <View style={{ flex: 1 }}/>
         </View>
 
@@ -40,8 +89,6 @@ export default function HomeScreen({ navigation }) {
             <Ionicons name="search" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
-        
-
       </View>
 
       {/* ------------------- CONTENIDO PRINCIPAL ------------------- */}
@@ -54,60 +101,25 @@ export default function HomeScreen({ navigation }) {
           onPress={() => console.log('Pedido enviado')}
           style={{ marginTop: 20 }}
         />
-      </View>
 
-      {/* ------------------- BARRA INFERIOR ------------------- */}
-      <View style={styles.bottomBar}>
-        <View style={styles.leftSection}>
-          
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="home" size={32} color={theme.colors.primary} />
-            <Text style={styles.iconTextPrimary}>Home</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton}
-          onPress={() => navigation.replace('Perfil')}>
-            <Ionicons name="person-circle-outline" size={32} color={theme.colors.textMuted} />
-            <Text style={styles.iconTextSecondary}>Perfil</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Ícono central: abre la cámara */}
-        <View style={styles.centerSection}>
-          <View style={styles.cameraButtonWrapper}>
-            <OpenCameraButton
-             onPick={async (asset) => {
-                try {
-                  const { requestId } = await createRequestWithPhoto({ imageUri: asset.uri });
-                  Toast.show({ type: "success", text1: "Receta enviada", text2: `Solicitud: ${requestId}` });
-                  navigation.replace('Ofertas');
-                } catch (e) {
-                  Toast.show({ type: "error", text1: "No se pudo enviar la receta", text2: e.message || "" });
-                }
-              }}
-            icon={<Ionicons name="scan-outline" size={32} color="#fff" />} //Color del dibujito
-            color={theme.colors.primary} // color tipo Mercado Libre
+        {/* Opcional: Botón de cámara adicional en el contenido */}
+        <View style={styles.cameraButtonContainer}>
+          <OpenCameraButton
+            onPick={handleScan}
+            icon={<Ionicons name="scan-outline" size={32} color="#fff" />}
+            color={theme.colors.primary}
             size={70}
-            />
-          </View>
-        </View>
-
-        <View style={styles.rightSection}>
-          
-          <TouchableOpacity 
-          style={styles.iconButton}
-          onPress={() => navigation.replace('Ofertas')}>
-            <Ionicons name="time-outline" size={32} color={theme.colors.textMuted} />
-            <Text style={styles.iconTextSecondary}>Ofertas</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="settings-outline" size={32} color={theme.colors.textMuted} />
-            <Text style={styles.iconTextSecondary}>Ajustes</Text>
-          </TouchableOpacity>
-
+          />
+          <Text style={styles.cameraButtonText}>Escanear receta</Text>
         </View>
       </View>
+
+      {/* ------------------- BARRA INFERIOR CON SCAN FUNCIONAL ------------------- */}
+      <BottomNavigation 
+        currentScreen="home" 
+        onNavigate={handleNavigation}
+        scanComponent={ScanButtonComponent}
+      />
 
       <StatusBar style="auto" />
     </View>
@@ -135,25 +147,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
-//Sectores ordenados
-leftSection: {
-  flex: 1,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-around',
-},
-centerSection: {
-  flex: 1,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-rightSection: {
-  flex: 1,
-  flexDirection: 'row',
-  alignItems: 'center',
-  justifyContent: 'space-around',
-},
-//-------------
+  leftSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  centerSection: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rightSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
   logoButton: {
     position: 'absolute',
     alignItems: 'center',
@@ -169,53 +179,36 @@ rightSection: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: theme.spacing.lg,
   },
   title: {
     fontSize: theme.typography.fontSize.title,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
+    textAlign: 'center',
+    marginBottom: theme.spacing.sm,
   },
   subtitle: {
     fontSize: theme.typography.fontSize.medium,
-    marginTop: 10,
     color: theme.colors.textMuted,
+    textAlign: 'center',
+    marginBottom: theme.spacing.xl,
   },
-  bottomBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  cameraButtonContainer: {
     alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderColor: theme.colors.background,
-    position: 'relative',
+    marginTop: theme.spacing.xl,
+  },
+  cameraButtonText: {
+    fontSize: theme.typography.fontSize.small,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing.sm,
+    fontWeight: theme.typography.fontWeight.medium,
+  },
+  scanButton: {
+    marginTop: -theme.spacing.lg,
   },
   iconButton: {
     alignItems: 'center',
     padding: theme.spacing.sm,
-  },
-  iconTextSecondary: {
-    fontSize: theme.typography.fontSize.small,
-    marginTop: 2 , //Espacio entre icono y texto del icono
-    color: theme.colors.textMuted
-  },
-  iconTextPrimary: {
-    fontSize: theme.typography.fontSize.small,
-    fontWeight: theme.typography.fontWeight.bold,
-    marginTop: 2 , //Espacio entre icono y texto del icono
-    color: theme.colors.primary 
-   },
-  cameraButtonWrapper: {
-    position: 'absolute',
-    bottom: 10,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    
-  },
-  iconTextCenter: {
-    fontSize: theme.typography.fontSize.small,
-    marginTop: 4,
   },
 });
