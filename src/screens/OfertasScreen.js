@@ -42,6 +42,7 @@ export default function OfertasScreen({ navigation }) {
   }, []);
 
 
+//comentario inutil
 
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
