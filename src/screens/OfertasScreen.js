@@ -3,9 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { auth } from '../lib/firebase'; // si ya usás Firebase Auth
+import { auth } from '../lib/firebase';
+
 
 
 export default function OfertasScreen({ navigation }) {
@@ -16,34 +17,29 @@ export default function OfertasScreen({ navigation }) {
 
 
   useEffect(() => {
-    const fetchOffers = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
+    const user = auth.currentUser;
+    if (!user) return;
 
-        const q = query(
-          collection(db, "offers"),
-          where("userId", "==", user.uid)
-        );
+    const q = query(
+      collection(db, "offers"),
+      where("userId", "==", user.uid)
+    );
 
-        const querySnapshot = await getDocs(q);
-        const offersData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const offersData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setOffers(offersData);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error al escuchar cambios en ofertas:", error);
+      setLoading(false);
+    });
 
-        setOffers(offersData);
-
-
-      } catch (error) {
-        console.error("Error al cargar ofertas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchOffers();
+    return () => unsubscribe();
   }, []);
+
 
   // ----------------- Ordenamiento justo antes de renderizar -----------------
   const sortedOffers = [...offers].sort((a, b) => {
