@@ -64,8 +64,8 @@ const ProfileScreen = ({ navigation }) => {
       titulo: 'Información personal',
       opciones: [
         { id: 'personal', icon: 'person-outline', title: 'Datos personales' },
-        { id: 'addresses', icon: 'location-outline', title: 'Direcciones' },
-        { id: 'payments', icon: 'card-outline', title: 'Métodos de pago' },
+        { id: 'addresses', icon: 'location-outline', title: 'Dirección' },
+        { id: 'payments', icon: 'card-outline', title: 'Método de pago' },
         { id: 'history', icon: 'time-outline', title: 'Historial' },
         { id: 'orders', icon: 'receipt-outline', title: 'Mis pedidos' },
         { id: 'reminders', icon: 'notifications-outline', title: 'Recordatorios de recetas' },

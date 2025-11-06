@@ -15,7 +15,7 @@ const ProfileStats = ({ estadisticas }) => {
   return (
     <View style={styles.statsContainer}>
       <StatItem numero={estadisticas.pedidos} label="Pedidos" />
-      <StatItem numero={estadisticas.direcciones} label="Direcciones" />
+      <StatItem numero={estadisticas.direcciones} label="Dirección" />
       <StatItem numero={estadisticas.rating} label="Rating" />
     </View>
   );
@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statNumber: {
-    fontSize: theme.typography.fontSize.xl,
+    fontSize: theme.typography.fontSize.large,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.primary,
     marginBottom: theme.spacing.xs,
