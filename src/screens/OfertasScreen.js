@@ -1,8 +1,9 @@
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDocs, doc, deleteDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 import BottomNavigation from '../components/BottomNavigation';
@@ -20,8 +21,10 @@ export default function OfertasScreen({ navigation }) {
 
     const q = query(
       collection(db, "offers"),
-      where("userId", "==", user.uid)
+      where("userId", "==", user.uid),
+      where("state", "==", "Pendiente")
     );
+
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const offersData = querySnapshot.docs.map((doc) => ({
@@ -38,16 +41,7 @@ export default function OfertasScreen({ navigation }) {
     return () => unsubscribe();
   }, []);
 
-  // Funciones para manejar aceptar/rechazar ofertas
-  const handleAccept = (offer) => {
-    console.log('Oferta aceptada:', offer);
-    // Aquí va tu lógica para aceptar la oferta
-  };
 
-  const handleReject = (offer) => {
-    console.log('Oferta rechazada:', offer);
-    // Aquí va tu lógica para rechazar la oferta
-  };
 
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
@@ -56,6 +50,7 @@ export default function OfertasScreen({ navigation }) {
     return 0;
   });
 
+  
   // Navegación del Bottom Navigation
   const handleNavigation = (screen) => {
     switch (screen) {
@@ -78,6 +73,50 @@ export default function OfertasScreen({ navigation }) {
         navigation.navigate('Home');
     }
   };
+  
+  const handleAccept = async (selectedOffer) => {
+    try {
+      // Cambiar estado de la oferta seleccionada a "Aceptada"
+      await updateDoc(doc(db, "offers", selectedOffer.id), {
+        state: "Aceptada",
+      });
+
+      // Traer todas las ofertas del usuario
+      const q = query(
+        collection(db, "offers"),
+        where("userId", "==", auth.currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
+
+      // Eliminar todas las demás ofertas
+      const batchDeletions = querySnapshot.docs.map(async (docSnap) => {
+        if (docSnap.id !== selectedOffer.id) {
+          await deleteDoc(doc(db, "offers", docSnap.id));
+        }
+      });
+      await Promise.all(batchDeletions);
+
+      // Mostrar notificación (alerta temporal arriba)
+      Alert.alert("✅ Oferta aceptada", "Se ha confirmado tu pedido con la farmacia.");
+
+      // Limpiar de la UI local (ya que la snapshot se actualizará sola)
+      setOffers([]);
+    } catch (error) {
+      console.error("Error al aceptar oferta:", error);
+      Alert.alert("Error", "No se pudo aceptar la oferta. Intenta de nuevo.");
+    }
+  };
+
+
+  const handleReject = async (offer) => {
+    try {
+      await deleteDoc(doc(db, "offers", offer.id));
+    } catch (error) {
+      console.error("Error al eliminar oferta:", error);
+      Alert.alert("Error", "No se pudo rechazar la oferta. Intenta nuevamente.");
+    }
+  };
+
 
   return (
     <View style={styles.container}>
@@ -169,7 +208,7 @@ export default function OfertasScreen({ navigation }) {
                 <View style={styles.pharmacyInfo}>
                   <Text style={styles.pharmacyName}>{offer.farmacia}</Text>
                   <Text style={styles.pharmacyDetails}>
-                    {offer.direccion} • ${offer.monto} • {offer.tiempoEspera} min
+                    {offer.direccion} • ${offer.preciototal} • {offer.tiempoEspera} min
                   </Text>
                   <Text style={styles.productText}>{offer.nombreProducto}</Text>
                 </View>
