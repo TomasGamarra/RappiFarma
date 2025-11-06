@@ -95,16 +95,13 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   modalContainer: {
-    backgroundColor: theme.colors.background,
-    borderRadius: theme.borderRadius.lg,
-    width: '90%',
-    maxHeight: '80%',
-    shadowColor: theme.colors.text,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-  },
+  backgroundColor: theme.colors.background,
+  borderRadius: theme.borderRadius.lg,
+  width: '95%',  // ← MÁS ANCHO PARA PANTALLAS PEQUEÑAS
+  maxHeight: '80%',
+  maxWidth: 400,  // ← LÍMITE PARA TABLETS
+  alignSelf: 'center',
+},
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

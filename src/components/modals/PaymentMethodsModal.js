@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView } from 
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../styles/theme';
 
-const PaymentMethodsModal = ({ visible, onClose, paymentMethods, onSave }) => {
+const PaymentMethodsModal = ({ visible, onClose, paymentMethods, onSave, modalWidth = '95%' }) => {
   const [paymentList, setPaymentList] = useState(paymentMethods);
   const [showCVV, setShowCVV] = useState({});
 
@@ -69,7 +69,7 @@ const PaymentMethodsModal = ({ visible, onClose, paymentMethods, onSave }) => {
 
   return (
     <View style={styles.modalOverlay}>
-      <View style={styles.modalContainer}>
+      <View style={[styles.modalContainer, { width: modalWidth }]}>
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Métodos de Pago</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -134,6 +134,7 @@ const PaymentMethodsModal = ({ visible, onClose, paymentMethods, onSave }) => {
                 autoCapitalize="characters"
               />
 
+              {/* SECCIÓN CORREGIDA - Fecha y CVV */}
               <View style={styles.rowInputs}>
                 <TextInput
                   style={[styles.input, styles.halfInput]}
@@ -143,9 +144,9 @@ const PaymentMethodsModal = ({ visible, onClose, paymentMethods, onSave }) => {
                   maxLength={5}
                 />
                 
-                <View style={[styles.halfInput, styles.cvvContainer]}>
+                <View style={styles.cvvContainer}>
                   <TextInput
-                    style={[styles.input, styles.cvvInput]}
+                    style={styles.cvvInput}
                     placeholder="CVV"
                     value={payment.cvv}
                     onChangeText={(text) => updatePayment(payment.id, 'cvv', text)}
@@ -209,8 +210,9 @@ const styles = StyleSheet.create({
   modalContainer: {
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.lg,
-    width: '90%',
     maxHeight: '80%',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -265,7 +267,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.background2,
+    borderColor: theme.colors.border || theme.colors.background2,
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.md,
     fontSize: theme.typography.fontSize.medium,
@@ -274,24 +276,36 @@ const styles = StyleSheet.create({
   },
   rowInputs: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: theme.spacing.sm,
-    marginBottom: theme.spacing.sm,
   },
   halfInput: {
     flex: 1,
+    minWidth: 0,
   },
   cvvContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    minWidth: 0,
+    position: 'relative',
   },
   cvvInput: {
     flex: 1,
-    marginBottom: 0,
+    borderWidth: 1,
+    borderColor: theme.colors.border || theme.colors.background2,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    paddingRight: 50,
+    fontSize: theme.typography.fontSize.medium,
+    backgroundColor: theme.colors.background,
+    minWidth: 0,
   },
   showCvvButton: {
     position: 'absolute',
-    right: theme.spacing.md,
+    right: theme.spacing.sm,
     padding: theme.spacing.sm,
+    zIndex: 1,
   },
   securityNote: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { theme } from '../styles/theme';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileStats from '../components/ProfileStats';
@@ -8,6 +8,8 @@ import BottomNavigation from '../components/BottomNavigation';
 import PersonalDataModal from '../components/modals/PersonalDataModal';
 import AddressesModal from '../components/modals/AddressesModal';
 import PaymentMethodsModal from '../components/modals/PaymentMethodsModal';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const ProfileScreen = ({ navigation }) => {
   // Estados para los modales
@@ -92,7 +94,6 @@ const ProfileScreen = ({ navigation }) => {
         setActiveModal('payments');
         break;
       case 'history':
-        // Aquí podrías abrir otro modal para el historial
         console.log('Abrir historial');
         break;
       case 'orders':
@@ -113,7 +114,6 @@ const ProfileScreen = ({ navigation }) => {
         navigation.navigate('Home');
         break;
       case 'profile':
-        // Ya estamos en perfil
         break;
       case 'scan':
         navigation.navigate('Home');
@@ -141,6 +141,13 @@ const ProfileScreen = ({ navigation }) => {
     setPaymentMethods(newPayments);
   };
 
+  // Determinar tamaño de modal basado en ancho de pantalla
+  const getModalWidth = () => {
+    if (screenWidth < 375) return '95%';  // Muy pequeño
+    if (screenWidth < 414) return '90%';  // Pequeño
+    return '85%';  // Normal/grande
+  };
+
   return (
     <View style={styles.container}>
       <ProfileHeader usuario={userData} />
@@ -150,12 +157,13 @@ const ProfileScreen = ({ navigation }) => {
         onOptionPress={handleOptionPress} 
       />
       
-      {/* Modales */}
+      {/* Modales con width dinámico */}
       <PersonalDataModal
         visible={activeModal === 'personal'}
         onClose={() => setActiveModal(null)}
         userData={userData}
         onSave={handleSavePersonalData}
+        modalWidth={getModalWidth()}
       />
       
       <AddressesModal
@@ -163,6 +171,7 @@ const ProfileScreen = ({ navigation }) => {
         onClose={() => setActiveModal(null)}
         addresses={addresses}
         onSave={handleSaveAddresses}
+        modalWidth={getModalWidth()}
       />
       
       <PaymentMethodsModal
@@ -170,6 +179,7 @@ const ProfileScreen = ({ navigation }) => {
         onClose={() => setActiveModal(null)}
         paymentMethods={paymentMethods}
         onSave={handleSavePaymentMethods}
+        modalWidth={getModalWidth()}
       />
 
       <BottomNavigation 
