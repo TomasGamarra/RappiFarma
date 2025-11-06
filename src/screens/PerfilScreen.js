@@ -11,14 +11,14 @@ import { createRequestWithPhoto } from "../features/requests/actions";
 
 
 
-export default function HomeScreen({ navigation }) {
+export default function PerfilScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* ------------------- BARRA SUPERIOR ------------------- */}
       <View style={styles.topBar}>
         <View style={styles.leftSection}>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="menu-outline" size={28} color= {theme.colors.primary} />
+            <Text style={styles.logoText}>Perfil</Text>
           </TouchableOpacity>
 
         {/* Spacer para ordenar iconos */}
@@ -26,18 +26,18 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.centerSection}>
-          <TouchableOpacity style={styles.logoButton}>
-            <Text style={styles.logoText}>RappiFarma</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.logoButton}>
+                <View style={{ flex: 1 }}/>
+            </TouchableOpacity>
         </View>
 
         <View style={styles.rightSection}>
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
+            <View style={{ flex: 1 }}/>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="search" size={28} color={theme.colors.primary} />
+            <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
         
@@ -60,15 +60,16 @@ export default function HomeScreen({ navigation }) {
       <View style={styles.bottomBar}>
         <View style={styles.leftSection}>
           
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="home" size={32} color={theme.colors.primary} />
-            <Text style={styles.iconTextPrimary}>Home</Text>
-          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.replace('Home')}>
+            <Ionicons name="home-outline" size={32} color={theme.colors.textMuted} />
+            <Text style={styles.iconTextSecondary}>Home</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton}
-          onPress={() => navigation.replace('Perfil')}>
-            <Ionicons name="person-circle-outline" size={32} color={theme.colors.textMuted} />
-            <Text style={styles.iconTextSecondary}>Perfil</Text>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="person-circle" size={32} color={theme.colors.primary} />
+            <Text style={styles.iconTextPrimary}>Perfil</Text>
           </TouchableOpacity>
         </View>
 

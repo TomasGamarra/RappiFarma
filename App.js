@@ -5,6 +5,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import Toast from "react-native-toast-message";
 import OfertasScreen from './src/screens/OfertasScreen';
+import PerfilScreen from './src/screens/PerfilScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,6 +25,7 @@ export default function App() {
         <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Inicio' }} />
         <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Registro' }} />
         <Stack.Screen name="Ofertas" component={OfertasScreen} options={{ title: 'Ofertas' }} />
+        <Stack.Screen name="Perfil" component={PerfilScreen} options={{ title: 'Perfil' }} />
       </Stack.Navigator>
 
       {/* El Toast debe estar montado aquí */}
