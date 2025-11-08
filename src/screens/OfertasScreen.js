@@ -50,7 +50,7 @@ export default function OfertasScreen({ navigation }) {
     return 0;
   });
 
-  
+
   // Navegación del Bottom Navigation
   const handleNavigation = (screen) => {
     switch (screen) {
@@ -73,7 +73,7 @@ export default function OfertasScreen({ navigation }) {
         navigation.navigate('Home');
     }
   };
-  
+
   const handleAccept = async (selectedOffer) => {
     try {
       // Cambiar estado de la oferta seleccionada a "Aceptada"
@@ -84,11 +84,12 @@ export default function OfertasScreen({ navigation }) {
       // Traer todas las ofertas del usuario
       const q = query(
         collection(db, "offers"),
-        where("userId", "==", auth.currentUser.uid)
+        where("userId", "==", auth.currentUser.uid),
+        where("state", "==", "Pendiente")
       );
+
       const querySnapshot = await getDocs(q);
 
-      // Eliminar todas las demás ofertas
       const batchDeletions = querySnapshot.docs.map(async (docSnap) => {
         if (docSnap.id !== selectedOffer.id) {
           await deleteDoc(doc(db, "offers", docSnap.id));
@@ -126,7 +127,7 @@ export default function OfertasScreen({ navigation }) {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="menu-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}/>
+          <View style={{ flex: 1 }} />
         </View>
 
         <View style={styles.centerSection}>
@@ -237,8 +238,8 @@ export default function OfertasScreen({ navigation }) {
       </View>
 
       {/* BOTTOM NAVIGATION ACTUALIZADO */}
-      <BottomNavigation 
-        currentScreen="ofertas" 
+      <BottomNavigation
+        currentScreen="ofertas"
         onNavigate={handleNavigation}
       />
     </View>
