@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { theme } from '../styles/theme';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileStats from '../components/ProfileStats';
@@ -8,8 +8,8 @@ import BottomNavigation from '../components/BottomNavigation';
 import PersonalDataModal from '../components/modals/PersonalDataModal';
 import AddressesModal from '../components/modals/AddressesModal';
 import PaymentMethodsModal from '../components/modals/PaymentMethodsModal';
-//import { auth, db } from '../lib/firebase';
-//import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -17,45 +17,11 @@ const ProfileScreen = ({ navigation }) => {
   // Estados para los modales
   const [activeModal, setActiveModal] = useState(null);
 
-  // Datos del usuario
-  const [userData, setUserData] = useState({
-    nombre: 'Juan Pérez',
-    email: 'juan.perez@email.com',
-    telefono: '+54 11 1234-5678',
-    fechaNacimiento: '15/03/1990',
-    miembroDesde: 'Miembro desde Octubre 2024',
-  });
+  const [userData, setUserData] = useState(null);
+  const [addresses, setAddresses] = useState([]);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [addresses, setAddresses] = useState([
-    {
-      id: '1',
-      nombre: 'Casa',
-      direccion: 'Av. Corrientes 1234',
-      ciudad: 'Buenos Aires',
-      codigoPostal: '1043',
-      esPrincipal: true
-    },
-    {
-      id: '2',
-      nombre: 'Trabajo',
-      direccion: 'Av. Santa Fe 567',
-      ciudad: 'Buenos Aires',
-      codigoPostal: '1059',
-      esPrincipal: false
-    }
-  ]);
-
-  const [paymentMethods, setPaymentMethods] = useState([
-    {
-      id: '1',
-      tipo: 'tarjeta',
-      numero: '**** **** **** 1234',
-      nombreTitular: 'JUAN PEREZ',
-      fechaVencimiento: '12/25',
-      cvv: '***',
-      esPrincipal: true
-    }
-  ]);
 
   const estadisticas = {
     pedidos: 12,
@@ -103,7 +69,10 @@ const ProfileScreen = ({ navigation }) => {
         break;
       case 'logout':
         console.log('Cerrar sesión');
-        navigation.navigate('Login');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        });
         break;
       default:
         console.log('Opción:', opcion.title);
@@ -150,10 +119,57 @@ const ProfileScreen = ({ navigation }) => {
     return '85%';  // Normal/grande
   };
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          navigation.replace('Login');
+          return;
+        }
+
+        const userRef = doc(db, 'users', currentUser.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setUserData({
+            nombre: data.nombre || '',
+            email: data.email || currentUser.email,
+            telefono: data.telefono || '',
+            fechaNacimiento: data.fechaNacimiento || '',
+            miembroDesde: data.miembroDesde || '',
+            apellido: data.apellido || ''
+          });
+
+          setAddresses(data.addresses || []);
+          setPaymentMethods(data.paymentMethods || []);
+        } else {
+          console.log('No se encontró el documento del usuario');
+        }
+      } catch (error) {
+        console.error('Error al obtener datos del usuario:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: theme.colors.text }}>Cargando perfil...</Text>
+      </View>
+    );
+  }
+
+
   return (
     <View style={styles.container}>
       <ProfileHeader usuario={userData} />
-      <ProfileStats estadisticas={estadisticas} />
+
       <OptionsList
         secciones={seccionesOpciones}
         onOptionPress={handleOptionPress}
