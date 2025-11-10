@@ -117,7 +117,8 @@ export default function HomeScreen({ navigation }) {
   };
 
   const renderOrder = ({ item }) => {
-    const visibleState = item.state === "Aceptada" ? "En preparación" : item.state;
+    const visibleState = item.state === "Aceptada" ? item.envioState || "En preparación" : item.state;
+
 
     return (
       <TouchableOpacity
@@ -213,11 +214,13 @@ export default function HomeScreen({ navigation }) {
 
             {selectedOrder && (
               <ScrollView>
-                <Text style={styles.farmaciaName}>📍 Dirección: {selectedOrder.direccion}</Text>
-                <Text style={styles.farmaciaName}>🏥 Farmacia: {selectedOrder.farmacia}</Text>
-                <Text style={styles.farmaciaName}>💰 Total: ${selectedOrder.preciototal}</Text>
-                <Text style={styles.farmaciaName}>⏱ Tiempo estimado: {selectedOrder.tiempoEspera || 'N/D'} min</Text>
-                <Text style={styles.farmaciaName}>📦 Estado: {selectedOrder.state === "Aceptada" ? "En preparación" : selectedOrder.state}</Text>
+                <Text style={styles.farmaciaName}> Dirección: {selectedOrder.direccion}</Text>
+                <Text style={styles.farmaciaName}> Farmacia: {selectedOrder.farmacia}</Text>
+                <Text style={styles.farmaciaName}> Total: ${selectedOrder.preciototal}</Text>
+                <Text style={styles.farmaciaName}> Tiempo estimado: {selectedOrder.tiempoEspera || 'N/D'} min</Text>
+                <Text style={styles.farmaciaName}> Estado: {selectedOrder.state === "Aceptada"
+                  ? selectedOrder.envioState || "En preparación"
+                  : selectedOrder.state}</Text>
 
                 <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: 5 }}>Medicamentos:</Text>
                 {selectedOrder.medicamentos?.map((m, i) => (

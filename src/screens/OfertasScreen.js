@@ -45,7 +45,7 @@ export default function OfertasScreen({ navigation }) {
 
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
-    if (sortBy === 'monto') return a.monto - b.monto;
+    if (sortBy === 'monto') return a.preciototal - b.preciototal;
     if (sortBy === 'tiempoEspera') return a.tiempoEspera - b.tiempoEspera;
     return 0;
   });
@@ -79,6 +79,7 @@ export default function OfertasScreen({ navigation }) {
       // Cambiar estado de la oferta seleccionada a "Aceptada"
       await updateDoc(doc(db, "offers", selectedOffer.id), {
         state: "Aceptada",
+        envioState: "En preparación"
       });
 
       // Traer todas las ofertas del usuario

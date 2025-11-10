@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { theme } from '../styles/theme';
 import ProfileHeader from '../components/ProfileHeader';
@@ -8,13 +8,15 @@ import BottomNavigation from '../components/BottomNavigation';
 import PersonalDataModal from '../components/modals/PersonalDataModal';
 import AddressesModal from '../components/modals/AddressesModal';
 import PaymentMethodsModal from '../components/modals/PaymentMethodsModal';
+//import { auth, db } from '../lib/firebase';
+//import { doc, getDoc } from 'firebase/firestore';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 const ProfileScreen = ({ navigation }) => {
   // Estados para los modales
   const [activeModal, setActiveModal] = useState(null);
-  
+
   // Datos del usuario
   const [userData, setUserData] = useState({
     nombre: 'Juan Pérez',
@@ -152,11 +154,11 @@ const ProfileScreen = ({ navigation }) => {
     <View style={styles.container}>
       <ProfileHeader usuario={userData} />
       <ProfileStats estadisticas={estadisticas} />
-      <OptionsList 
-        secciones={seccionesOpciones} 
-        onOptionPress={handleOptionPress} 
+      <OptionsList
+        secciones={seccionesOpciones}
+        onOptionPress={handleOptionPress}
       />
-      
+
       {/* Modales con width dinámico */}
       <PersonalDataModal
         visible={activeModal === 'personal'}
@@ -165,7 +167,7 @@ const ProfileScreen = ({ navigation }) => {
         onSave={handleSavePersonalData}
         modalWidth={getModalWidth()}
       />
-      
+
       <AddressesModal
         visible={activeModal === 'addresses'}
         onClose={() => setActiveModal(null)}
@@ -173,7 +175,7 @@ const ProfileScreen = ({ navigation }) => {
         onSave={handleSaveAddresses}
         modalWidth={getModalWidth()}
       />
-      
+
       <PaymentMethodsModal
         visible={activeModal === 'payments'}
         onClose={() => setActiveModal(null)}
@@ -182,8 +184,8 @@ const ProfileScreen = ({ navigation }) => {
         modalWidth={getModalWidth()}
       />
 
-      <BottomNavigation 
-        currentScreen="profile" 
+      <BottomNavigation
+        currentScreen="profile"
         onNavigate={handleNavigation}
       />
     </View>
