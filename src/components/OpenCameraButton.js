@@ -17,7 +17,7 @@ export default function OpenCameraButton({
     // 1) pedir permiso
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Habilitá la cámara en Ajustes.');
+      Alert.alert('Permiso denegado');
       return;
     }
 

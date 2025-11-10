@@ -10,8 +10,13 @@ import BottomNavigation from '../components/BottomNavigation';
 import { theme } from '../styles/theme';
 import Toast from "react-native-toast-message";
 import { createRequestWithPhoto } from "../features/requests/actions";
+import { Dimensions } from 'react-native';
 
+  const { widthPantalla } = Dimensions.get('window');
 export default function HomeScreen({ navigation }) {
+
+
+
 
   const handleScan = async (asset) => {
     try {
@@ -194,7 +199,11 @@ export default function HomeScreen({ navigation }) {
               data={orders}
               keyExtractor={(item) => item.id}
               renderItem={renderOrder}
-              contentContainerStyle={{ paddingBottom: 100 }}
+              contentContainerStyle={{ 
+              paddingBottom: 100,
+              paddingHorizontal: 0  // ✅ Sin padding horizontal extra
+              }}
+              style={{ width: '100%' }}  // ✅ Ocupa todo el ancho
             />
           </>
         )}
@@ -366,16 +375,17 @@ const styles = StyleSheet.create({
   orderCard: {
     backgroundColor: '#fff',
     borderRadius: 14,
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    marginVertical: 10,
-    marginHorizontal: 16,
+    marginVertical: 8,
+    marginHorizontal: 16,  // ✅ Esto hace que se adapte al ancho
+    width: 'auto',         // ✅ Se ajusta automáticamente
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 6,
     elevation: 3,
-    minHeight: 110,           // más alargada
+    minHeight: 110,
     justifyContent: 'center',
   },
 
