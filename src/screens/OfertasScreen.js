@@ -46,12 +46,12 @@ export default function OfertasScreen({ navigation }) {
 
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
-    if (sortBy === 'monto') return a.monto - b.monto;
+    if (sortBy === 'monto') return a.preciototal - b.preciototal;
     if (sortBy === 'tiempoEspera') return a.tiempoEspera - b.tiempoEspera;
     return 0;
   });
 
-  
+
   // Navegación del Bottom Navigation
   const handleNavigation = (screen) => {
     switch (screen) {
@@ -74,22 +74,24 @@ export default function OfertasScreen({ navigation }) {
         navigation.navigate('Home');
     }
   };
-  
+
   const handleAccept = async (selectedOffer) => {
     try {
       // Cambiar estado de la oferta seleccionada a "Aceptada"
       await updateDoc(doc(db, "offers", selectedOffer.id), {
         state: "Aceptada",
+        envioState: "En preparación"
       });
 
       // Traer todas las ofertas del usuario
       const q = query(
         collection(db, "offers"),
-        where("userId", "==", auth.currentUser.uid)
+        where("userId", "==", auth.currentUser.uid),
+        where("state", "==", "Pendiente")
       );
+
       const querySnapshot = await getDocs(q);
 
-      // Eliminar todas las demás ofertas
       const batchDeletions = querySnapshot.docs.map(async (docSnap) => {
         if (docSnap.id !== selectedOffer.id) {
           await deleteDoc(doc(db, "offers", docSnap.id));
@@ -127,7 +129,7 @@ export default function OfertasScreen({ navigation }) {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="menu-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
-          <View style={{ flex: 1 }}/>
+          <View style={{ flex: 1 }} />
         </View>
 
         <View style={styles.centerSection}>
@@ -238,8 +240,8 @@ export default function OfertasScreen({ navigation }) {
       </View>
 
       {/* BOTTOM NAVIGATION ACTUALIZADO */}
-      <BottomNavigation 
-        currentScreen="ofertas" 
+      <BottomNavigation
+        currentScreen="ofertas"
         onNavigate={handleNavigation}
       />
     </View>
