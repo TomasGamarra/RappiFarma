@@ -19,6 +19,7 @@ export async function createRequestWithPhoto({
 }) {
   const user = auth.currentUser;
   if (!user) throw new Error("NO_AUTENTICADO");
+  const userId = user.uid; // ← clave
 
   // 1) Normalizar imágenes y subir
   const uris = Array.isArray(imageUri) ? imageUri : [imageUri];
@@ -38,7 +39,7 @@ export async function createRequestWithPhoto({
   );
 
   // 3) Datos del usuario
-  const userSnap = await getDoc(doc(db, "users", user.uid));
+  const userSnap = await getDoc(doc(db, "users", userId));
   if (!userSnap.exists()) throw new Error("No se encontró el documento del usuario en Firestore.");
   const userData = userSnap.data();
   if (!userData.direccion) throw new Error("No se encontró la dirección del usuario. Por favor completala en tu perfil.");
@@ -50,15 +51,15 @@ export async function createRequestWithPhoto({
   const farmaciaUids = qs.docs.map(d => d.id);
   if (farmaciaUids.length === 0) throw new Error("No hay farmacias habilitadas.");
 
-  // 5) Armar batch atómico: request + punteros de inbox
+  // 5) Batch: request + inbox pointers
   const batch = writeBatch(db);
-  const reqRef = doc(collection(db, "requests"));     // id generado sin escribir aún
+  const reqRef = doc(collection(db, "requests"));
   const requestId = reqRef.id;
-  const createdAt = serverTimestamp();                 // mismo timestamp en todas las escrituras
+  const createdAt = serverTimestamp();
 
   // 5.a) Master request
   batch.set(reqRef, {
-    userId: user.uid,
+    userId,         // ← usar la variable
     createdAt,
     expiresAt,
     images: imageUrls,
@@ -67,24 +68,21 @@ export async function createRequestWithPhoto({
     state: "Abierto",
   });
 
-  // 5.b) Fan-out punteros de inbox
+  // 5.b) Fan-out a inbox de farmacias
   const thumb = imageUrls[0] ?? null;
-  const userName =
-    [userData?.nombre, userData?.apellido].filter(Boolean).join(" ").trim() || null;
+  const userName = [userData?.nombre, userData?.apellido].filter(Boolean).join(" ").trim() || null;
 
   for (const farmaciaUid of farmaciaUids) {
     const ptrRef = doc(db, "inbox", farmaciaUid, "requests", requestId);
-    batch.set(
-      ptrRef,
-      {
-        requestId,          // referencia estable
-        createdAt,          // fecha visible para la farmacia
-        thumb,              // foto
-        userName,           // nombre del usuario
-        direccion: address, // dirección del usuario
-      },
-      { merge: true }
-    );
+    batch.set(ptrRef, {
+      requestId,
+      createdAt,
+      thumb,
+      userName,
+      direccion: address,
+      userId,       // ← dueñx del pedido para reglas y limpieza
+      // opcional: ownerId: userId,
+    }, { merge: true });
   }
 
   // 6) Commit

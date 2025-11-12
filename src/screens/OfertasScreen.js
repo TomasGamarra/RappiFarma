@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert 
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy, getDocs, doc, deleteDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, getDocs, doc, deleteDoc, updateDoc, setDoc, collectionGroup,  documentId } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 import BottomNavigation from '../components/BottomNavigation';
@@ -76,39 +76,59 @@ export default function OfertasScreen({ navigation }) {
   };
 
   const handleAccept = async (selectedOffer) => {
-    try {
-      // Cambiar estado de la oferta seleccionada a "Aceptada"
-      await updateDoc(doc(db, "offers", selectedOffer.id), {
-        state: "Aceptada",
-        envioState: "En preparación"
-      });
+  try {
+    const uid = auth.currentUser?.uid;
+    if (!uid) throw new Error("NO_AUTH");
+    const rid = String(selectedOffer?.requestId || "");
 
-      // Traer todas las ofertas del usuario
-      const q = query(
-        collection(db, "offers"),
-        where("userId", "==", auth.currentUser.uid),
-        where("state", "==", "Pendiente")
+    // 0) Aceptar la oferta elegida
+    await updateDoc(doc(db, "offers", selectedOffer.id), {
+      state: "Aceptada",
+      envioState: "En preparación",
+    });
+
+    // 1) Recolectar TODOS los IDs de farmacias desde /users
+    const qPharms = query(collection(db, "users"), where("role", "==", "farmacia"));
+    const phSnap = await getDocs(qPharms);
+    const farmaciaIds = phSnap.docs.map(d => String(d.id));
+
+    // 2) Traer ofertas pendientes del usuario y borrarlas excepto la aceptada
+    const qPend = query(
+      collection(db, "offers"),
+      where("userId", "==", uid),
+      where("state", "==", "Pendiente")
+    );
+    const pendSnap = await getDocs(qPend);
+    await Promise.all(
+      pendSnap.docs.map(d => d.id !== selectedOffer.id
+        ? deleteDoc(doc(db, "offers", d.id))
+        : Promise.resolve())
+    );
+
+    // 3) Borrar punteros en /inbox/{farmaciaId}/requests/{requestId}
+    if (rid) {
+      await Promise.all(
+        farmaciaIds.map(fid =>
+          deleteDoc(doc(db, "inbox", fid, "requests", rid))
+            .catch(e => console.warn(`No se pudo borrar inbox/${fid}/requests/${rid}:`, e?.code || e?.message))
+        )
       );
-
-      const querySnapshot = await getDocs(q);
-
-      const batchDeletions = querySnapshot.docs.map(async (docSnap) => {
-        if (docSnap.id !== selectedOffer.id) {
-          await deleteDoc(doc(db, "offers", docSnap.id));
-        }
-      });
-      await Promise.all(batchDeletions);
-
-      // Mostrar notificación (alerta temporal arriba)
-      Alert.alert("✅ Oferta aceptada", "Se ha confirmado tu pedido con la farmacia.");
-
-      // Limpiar de la UI local (ya que la snapshot se actualizará sola)
-      setOffers([]);
-    } catch (error) {
-      console.error("Error al aceptar oferta:", error);
-      Alert.alert("Error", "No se pudo aceptar la oferta. Intenta de nuevo.");
     }
-  };
+
+    // 4) Borrar la request raíz
+    if (rid) {
+      await deleteDoc(doc(db, "requests", rid));
+    }
+
+    Alert.alert("✅ Oferta aceptada", "Se confirmó tu pedido.");
+    setOffers([]);
+  } catch (error) {
+    console.error("Error al aceptar oferta:", error);
+    Alert.alert("Error", "No se pudo aceptar la oferta. Intenta de nuevo.");
+  }
+};
+
+
 
 
   const handleReject = async (offer) => {
