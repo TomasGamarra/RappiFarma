@@ -140,10 +140,6 @@ export default function OfertasScreen({ navigation }) {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="search" size={28} color={theme.colors.primary} />
-          </TouchableOpacity>
         </View>
       </View>
 
