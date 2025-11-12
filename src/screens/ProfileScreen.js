@@ -34,7 +34,7 @@ const ProfileScreen = ({ navigation }) => {
           const data = userSnap.data();
           setUserData({
             nombre: data.nombre || 'Nombre',
-            apellido: data.apellido || 'Apellido', 
+            apellido: data.apellido || 'Apellido',
             telefono: data.telefono || 'Agregar teléfono',
             direccion: data.direccion || 'Agregar dirección',
             dni: data.dni || 'Agregar DNI'
@@ -58,7 +58,7 @@ const ProfileScreen = ({ navigation }) => {
       await updateDoc(doc(db, 'users', currentUser.uid), {
         [field]: value
       });
-      
+
       setUserData(prev => ({ ...prev, [field]: value }));
       setEditingField(null);
     } catch (error) {
@@ -69,11 +69,11 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleNavigation = (screen) => {
     switch (screen) {
-      case 'home': navigation.navigate('Home'); break;
-      case 'scan': navigation.navigate('Home'); break;
-      case 'ofertas': navigation.navigate('Ofertas'); break;
-      case 'settings': navigation.navigate('Ajustes'); break;
-      default: navigation.navigate('Home');
+      case 'home': navigation.replace('Home'); break;
+      case 'scan': navigation.replace('Home'); break;
+      case 'ofertas': navigation.replace('Ofertas'); break;
+      case 'settings': navigation.replace('Ajustes'); break;
+      default: navigation.replace('Home');
     }
   };
 
@@ -90,7 +90,7 @@ const ProfileScreen = ({ navigation }) => {
   }
 
   const EditableField = ({ label, field, value, icon, editable = true }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={styles.fieldContainer}
       onPress={() => editable && setEditingField(field)}
       disabled={!editable}
@@ -99,7 +99,7 @@ const ProfileScreen = ({ navigation }) => {
         <Ionicons name={icon} size={20} color={theme.colors.primary} />
         <Text style={styles.fieldLabel}>{label}</Text>
       </View>
-      
+
       {editingField === field ? (
         <TextInput
           style={styles.input}
@@ -127,7 +127,7 @@ const ProfileScreen = ({ navigation }) => {
         </View>
         <View style={styles.userInfo}>
           {/* Nombre editable */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.nameContainer}
             onPress={() => setEditingField('nombre')}
           >
@@ -146,7 +146,7 @@ const ProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           {/* Apellido editable */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.nameContainer}
             onPress={() => setEditingField('apellido')}
           >
@@ -170,28 +170,28 @@ const ProfileScreen = ({ navigation }) => {
       <ScrollView style={styles.content}>
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
-          
+
           {/* DNI NO editable */}
-          <EditableField 
-            label="DNI" 
-            field="dni" 
-            value={userData.dni} 
+          <EditableField
+            label="DNI"
+            field="dni"
+            value={userData.dni}
             icon="card-outline"
             editable={false} // ← DNI no editable
           />
-          
-          <EditableField 
-            label="Teléfono" 
-            field="telefono" 
-            value={userData.telefono} 
-            icon="call-outline" 
+
+          <EditableField
+            label="Teléfono"
+            field="telefono"
+            value={userData.telefono}
+            icon="call-outline"
           />
-          
-          <EditableField 
-            label="Dirección" 
-            field="direccion" 
-            value={userData.direccion} 
-            icon="location-outline" 
+
+          <EditableField
+            label="Dirección"
+            field="direccion"
+            value={userData.direccion}
+            icon="location-outline"
           />
         </View>
 

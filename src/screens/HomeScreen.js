@@ -12,7 +12,7 @@ import Toast from "react-native-toast-message";
 import { createRequestWithPhoto } from "../features/requests/actions";
 import { Dimensions } from 'react-native';
 
-  const { widthPantalla } = Dimensions.get('window');
+const { widthPantalla } = Dimensions.get('window');
 export default function HomeScreen({ navigation }) {
 
 
@@ -42,19 +42,19 @@ export default function HomeScreen({ navigation }) {
         // Ya estamos en home
         break;
       case 'profile':
-        navigation.navigate('Profile');
+        navigation.replace('Profile');
         break;
       case 'scan':
         // La funcionalidad de escaneo está en el OpenCameraButton del BottomNavigation
         break;
       case 'ofertas':
-        navigation.navigate('Ofertas');
+        navigation.replace('Ofertas');
         break;
       case 'settings':
-        navigation.navigate('Ajustes');
+        navigation.replace('Ajustes');
         break;
       default:
-        navigation.navigate('Home');
+        navigation.replace('Home');
     }
   };
 
@@ -195,9 +195,9 @@ export default function HomeScreen({ navigation }) {
               data={orders}
               keyExtractor={(item) => item.id}
               renderItem={renderOrder}
-              contentContainerStyle={{ 
-              paddingBottom: 100,
-              paddingHorizontal: 0  // ✅ Sin padding horizontal extra
+              contentContainerStyle={{
+                paddingBottom: 100,
+                paddingHorizontal: 0  // ✅ Sin padding horizontal extra
               }}
               style={{ width: '100%' }}  // ✅ Ocupa todo el ancho
             />

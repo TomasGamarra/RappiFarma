@@ -27,7 +27,7 @@ export default function LoginScreen({ navigation }) {
       setLoading(true);
       await signIn(d, pass);
       Toast.show({ type: "success", text1: "Login exitoso" });
-      navigation.navigate("Home");
+      navigation.replace("Home");
     } catch (e) {
       const map = {
         "auth/invalid-credential": "Credenciales inválidas",
