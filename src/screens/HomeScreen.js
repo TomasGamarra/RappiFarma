@@ -175,10 +175,6 @@ export default function HomeScreen({ navigation }) {
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="search" size={28} color={theme.colors.primary} />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -288,7 +284,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'flex-start',
   },
 
   centerSection: {
@@ -301,7 +297,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'flex-end',
   },
 
   logoButton: {

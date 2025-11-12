@@ -2,8 +2,11 @@
 import { auth, db } from "../../lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import {
-  addDoc,
   collection,
+  query,
+  where,
+  getDocs,
+  writeBatch,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -17,11 +20,10 @@ export async function createRequestWithPhoto({
   const user = auth.currentUser;
   if (!user) throw new Error("NO_AUTENTICADO");
 
-  // normalizo a array
+  // 1) Normalizar imágenes y subir
   const uris = Array.isArray(imageUri) ? imageUri : [imageUri];
   if (!uris.length) throw new Error("Debés adjuntar al menos una imagen.");
 
-  // 1) Subir imágenes a Cloudinary
   const imageUrls = [];
   for (const uri of uris) {
     const url = await uploadToCloudinary(uri);
@@ -29,31 +31,64 @@ export async function createRequestWithPhoto({
     imageUrls.push(url);
   }
 
-  // 2) Timestamps
+  // 2) Calcular expiración
   const nowMs = Date.now();
   const expiresAt = Timestamp.fromMillis(
     nowMs + Math.max(1, windowMinutes) * 60 * 1000
   );
 
-  // 3) Traer la dirección del usuario desde Firestore
+  // 3) Datos del usuario
   const userSnap = await getDoc(doc(db, "users", user.uid));
-  if (!userSnap.exists()) {
-    throw new Error("No se encontró el documento del usuario en Firestore.");
-  }
+  if (!userSnap.exists()) throw new Error("No se encontró el documento del usuario en Firestore.");
   const userData = userSnap.data();
-  if (!userData.direccion) {
-    throw new Error("No se encontró la dirección del usuario. Por favor completala en tu perfil.");
-  }
-  const address = userData.direccion; 
+  if (!userData.direccion) throw new Error("No se encontró la dirección del usuario. Por favor completala en tu perfil.");
+  const address = userData.direccion;
 
-  // 4) Crear documento del request
-  const docRef = await addDoc(collection(db, "requests"), {
+  // 4) Descubrir farmacias destino
+  const q = query(collection(db, "users"), where("role", "==", "farmacia"));
+  const qs = await getDocs(q);
+  const farmaciaUids = qs.docs.map(d => d.id);
+  if (farmaciaUids.length === 0) throw new Error("No hay farmacias habilitadas.");
+
+  // 5) Armar batch atómico: request + punteros de inbox
+  const batch = writeBatch(db);
+  const reqRef = doc(collection(db, "requests"));     // id generado sin escribir aún
+  const requestId = reqRef.id;
+  const createdAt = serverTimestamp();                 // mismo timestamp en todas las escrituras
+
+  // 5.a) Master request
+  batch.set(reqRef, {
     userId: user.uid,
-    createdAt: serverTimestamp(),
+    createdAt,
     expiresAt,
     images: imageUrls,
-    direccion: address,   
+    direccion: address,
+    notes,
+    state: "Abierto",
   });
 
-  return { requestId: docRef.id, images: imageUrls };
+  // 5.b) Fan-out punteros de inbox
+  const thumb = imageUrls[0] ?? null;
+  const userName =
+    [userData?.nombre, userData?.apellido].filter(Boolean).join(" ").trim() || null;
+
+  for (const farmaciaUid of farmaciaUids) {
+    const ptrRef = doc(db, "inbox", farmaciaUid, "requests", requestId);
+    batch.set(
+      ptrRef,
+      {
+        requestId,          // referencia estable
+        createdAt,          // fecha visible para la farmacia
+        thumb,              // foto
+        userName,           // nombre del usuario
+        direccion: address, // dirección del usuario
+      },
+      { merge: true }
+    );
+  }
+
+  // 6) Commit
+  await batch.commit();
+
+  return { requestId, images: imageUrls };
 }
