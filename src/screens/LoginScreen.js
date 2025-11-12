@@ -14,14 +14,14 @@ export default function LoginScreen({ navigation }) {
     const d = dni.trim();
     const pass = password;
 
-    if (!d) {
-      Toast.show({ type: "error", text1: "Ingresá tu DNI" });
-      return;
-    }
-    if (!pass || pass.length < 6) {
-      Toast.show({ type: "error", text1: "La contraseña debe tener al menos 6 caracteres." });
-      return;
-    }
+    /*   if (!d) {
+        Toast.show({ type: "error", text1: "Ingresá tu DNI" });
+        return;
+      }
+      if (!pass || pass.length < 6) {
+        Toast.show({ type: "error", text1: "La contraseña debe tener al menos 6 caracteres." });
+        return;
+      } */
 
     try {
       setLoading(true);
@@ -35,7 +35,7 @@ export default function LoginScreen({ navigation }) {
         "auth/wrong-password": "Contraseña incorrecta",
         "auth/too-many-requests": "Demasiados intentos. Probá más tarde",
       };
-      Toast.show({ type: "error", text1: map[e?.code] || "No se pudo iniciar sesión" });
+      Toast.show({ type: "error", text1: map[e?.code] || "Complete DNI y contraseña" });
     } finally {
       setLoading(false);
     }
