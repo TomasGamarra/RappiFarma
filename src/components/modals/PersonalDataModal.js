@@ -29,29 +29,29 @@ const PersonalDataModal = ({ visible, onClose, userData, onSave }) => {
             <Text style={styles.label}>Nombre completo</Text>
             <TextInput
               style={styles.input}
-              value={formData.nombre}
-              onChangeText={(text) => setFormData({...formData, nombre: text})}
+              value={`${formData.nombre || ''} ${formData.apellido || ''}`.trim()}
+              onChangeText={(text) => setFormData({ ...formData, nombre: text })}
               placeholder="Ingresa tu nombre completo"
             />
           </View>
-
+          {/* 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
               style={styles.input}
               value={formData.email}
-              onChangeText={(text) => setFormData({...formData, email: text})}
+              onChangeText={(text) => setFormData({ ...formData, email: text })}
               placeholder="Ingresa tu email"
               keyboardType="email-address"
             />
           </View>
-
+ */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Teléfono</Text>
             <TextInput
               style={styles.input}
               value={formData.telefono}
-              onChangeText={(text) => setFormData({...formData, telefono: text})}
+              onChangeText={(text) => setFormData({ ...formData, telefono: text })}
               placeholder="Ingresa tu teléfono"
               keyboardType="phone-pad"
             />
@@ -62,7 +62,7 @@ const PersonalDataModal = ({ visible, onClose, userData, onSave }) => {
             <TextInput
               style={styles.input}
               value={formData.fechaNacimiento}
-              onChangeText={(text) => setFormData({...formData, fechaNacimiento: text})}
+              onChangeText={(text) => setFormData({ ...formData, fechaNacimiento: text })}
               placeholder="DD/MM/AAAA"
             />
           </View>
@@ -95,13 +95,13 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   modalContainer: {
-  backgroundColor: theme.colors.background,
-  borderRadius: theme.borderRadius.lg,
-  width: '95%',  // ← MÁS ANCHO PARA PANTALLAS PEQUEÑAS
-  maxHeight: '80%',
-  maxWidth: 400,  // ← LÍMITE PARA TABLETS
-  alignSelf: 'center',
-},
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    width: '95%',  // ← MÁS ANCHO PARA PANTALLAS PEQUEÑAS
+    maxHeight: '80%',
+    maxWidth: 400,  // ← LÍMITE PARA TABLETS
+    alignSelf: 'center',
+  },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

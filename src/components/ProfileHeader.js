@@ -3,19 +3,29 @@ import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '../styles/theme';
 
 const ProfileHeader = ({ usuario }) => {
+  // Evitamos errores si usuario aún no está cargado
+  if (!usuario) return null;
+
+  const nombre = usuario.nombre || '';
+  const apellido = usuario.apellido || '';
+
+  // Iniciales: primera letra de nombre y apellido
+  const iniciales = `${nombre.charAt(0)}${apellido.charAt(0)}`.toUpperCase();
+
+  // Mostrar solo la parte del email antes del @ (en tu caso, el DNI)
+  const dni = usuario.email?.split('@')[0] || '';
+
   return (
     <View style={styles.headerContainer}>
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {usuario.nombre.split(' ').map(n => n[0]).join('')}
-          </Text>
+          <Text style={styles.avatarText}>{iniciales}</Text>
         </View>
       </View>
-      
+
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{usuario.nombre}</Text>
-        <Text style={styles.userEmail}>{usuario.email}</Text>
+        <Text style={styles.userName}>{`${nombre} ${apellido}`}</Text>
+        <Text style={styles.userEmail}>{dni}</Text>
         <Text style={styles.memberSince}>{usuario.miembroDesde}</Text>
       </View>
     </View>
