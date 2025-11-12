@@ -1,124 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
-import ProfileHeader from '../components/ProfileHeader';
-import ProfileStats from '../components/ProfileStats';
-import OptionsList from '../components/OptionsList';
 import BottomNavigation from '../components/BottomNavigation';
-import PersonalDataModal from '../components/modals/PersonalDataModal';
-import AddressesModal from '../components/modals/AddressesModal';
-import PaymentMethodsModal from '../components/modals/PaymentMethodsModal';
 import { auth, db } from '../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-
-const { width: screenWidth } = Dimensions.get('window');
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 
 const ProfileScreen = ({ navigation }) => {
-  // Estados para los modales
-  const [activeModal, setActiveModal] = useState(null);
-
-  const [userData, setUserData] = useState(null);
-  const [addresses, setAddresses] = useState([]);
-  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [userData, setUserData] = useState({
+    nombre: '',
+    apellido: '',
+    telefono: '',
+    direccion: '',
+    dni: ''
+  });
   const [loading, setLoading] = useState(true);
+  const [editingField, setEditingField] = useState(null);
 
-
-  const estadisticas = {
-    pedidos: 12,
-    direcciones: addresses.length,
-    rating: 4.9,
-  };
-
-  const seccionesOpciones = [
-    {
-      titulo: 'Información personal',
-      opciones: [
-        { id: 'personal', icon: 'person-outline', title: 'Datos personales' },
-        { id: 'addresses', icon: 'location-outline', title: 'Dirección' },
-        { id: 'payments', icon: 'card-outline', title: 'Método de pago' },
-        { id: 'history', icon: 'time-outline', title: 'Historial' },
-        { id: 'orders', icon: 'receipt-outline', title: 'Mis pedidos' },
-        { id: 'reminders', icon: 'notifications-outline', title: 'Recordatorios de recetas' },
-      ],
-    },
-    {
-      titulo: 'Seguridad',
-      opciones: [
-        { id: 'security', icon: 'shield-checkmark-outline', title: 'Seguridad y privacidad' },
-        { id: 'logout', icon: 'log-out-outline', title: 'Cerrar sesión', isDestructive: true },
-      ],
-    },
-  ];
-
-  const handleOptionPress = (opcion) => {
-    switch (opcion.id) {
-      case 'personal':
-        setActiveModal('personal');
-        break;
-      case 'addresses':
-        setActiveModal('addresses');
-        break;
-      case 'payments':
-        setActiveModal('payments');
-        break;
-      case 'history':
-        console.log('Abrir historial');
-        break;
-      case 'orders':
-        navigation.navigate('MisPedidos');
-        break;
-      case 'logout':
-        console.log('Cerrar sesión');
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Login' }],
-        });
-        break;
-      default:
-        console.log('Opción:', opcion.title);
-    }
-  };
-
-  const handleNavigation = (screen) => {
-    switch (screen) {
-      case 'home':
-        navigation.navigate('Home');
-        break;
-      case 'profile':
-        break;
-      case 'scan':
-        navigation.navigate('Home');
-        break;
-      case 'ofertas':
-        navigation.navigate('Ofertas');
-        break;
-      case 'settings':
-        navigation.navigate('Ajustes');
-        break;
-      default:
-        navigation.navigate('Home');
-    }
-  };
-
-  const handleSavePersonalData = (newData) => {
-    setUserData(newData);
-  };
-
-  const handleSaveAddresses = (newAddresses) => {
-    setAddresses(newAddresses);
-  };
-
-  const handleSavePaymentMethods = (newPayments) => {
-    setPaymentMethods(newPayments);
-  };
-
-  // Determinar tamaño de modal basado en ancho de pantalla
-  const getModalWidth = () => {
-    if (screenWidth < 375) return '95%';  // Muy pequeño
-    if (screenWidth < 414) return '90%';  // Pequeño
-    return '85%';  // Normal/grande
-  };
-
+  // Cargar datos del usuario
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -134,21 +33,15 @@ const ProfileScreen = ({ navigation }) => {
         if (userSnap.exists()) {
           const data = userSnap.data();
           setUserData({
-            nombre: data.nombre || '',
-            email: data.email || currentUser.email,
-            telefono: data.telefono || '',
-            fechaNacimiento: data.fechaNacimiento || '',
-            miembroDesde: data.miembroDesde || '',
-            apellido: data.apellido || ''
+            nombre: data.nombre || 'Nombre',
+            apellido: data.apellido || 'Apellido', 
+            telefono: data.telefono || 'Agregar teléfono',
+            direccion: data.direccion || 'Agregar dirección',
+            dni: data.dni || 'Agregar DNI'
           });
-
-          setAddresses(data.addresses || []);
-          setPaymentMethods(data.paymentMethods || []);
-        } else {
-          console.log('No se encontró el documento del usuario');
         }
       } catch (error) {
-        console.error('Error al obtener datos del usuario:', error);
+        console.error('Error al obtener datos:', error);
       } finally {
         setLoading(false);
       }
@@ -157,53 +50,159 @@ const ProfileScreen = ({ navigation }) => {
     fetchUserData();
   }, []);
 
+  const handleSave = async (field, value) => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      await updateDoc(doc(db, 'users', currentUser.uid), {
+        [field]: value
+      });
+      
+      setUserData(prev => ({ ...prev, [field]: value }));
+      setEditingField(null);
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      Alert.alert('Error', 'No se pudieron guardar los datos');
+    }
+  };
+
+  const handleNavigation = (screen) => {
+    switch (screen) {
+      case 'home': navigation.navigate('Home'); break;
+      case 'scan': navigation.navigate('Home'); break;
+      case 'ofertas': navigation.navigate('Ofertas'); break;
+      case 'settings': navigation.navigate('Ajustes'); break;
+      default: navigation.navigate('Home');
+    }
+  };
+
+  const handleLogout = () => {
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
+
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ color: theme.colors.text }}>Cargando perfil...</Text>
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
       </View>
     );
   }
 
+  const EditableField = ({ label, field, value, icon, editable = true }) => (
+    <TouchableOpacity 
+      style={styles.fieldContainer}
+      onPress={() => editable && setEditingField(field)}
+      disabled={!editable}
+    >
+      <View style={styles.fieldHeader}>
+        <Ionicons name={icon} size={20} color={theme.colors.primary} />
+        <Text style={styles.fieldLabel}>{label}</Text>
+      </View>
+      
+      {editingField === field ? (
+        <TextInput
+          style={styles.input}
+          value={value}
+          onChangeText={(text) => setUserData(prev => ({ ...prev, [field]: text }))}
+          onBlur={() => handleSave(field, userData[field])}
+          autoFocus
+        />
+      ) : (
+        <Text style={[styles.fieldValue, !editable && styles.nonEditableField]}>
+          {value}
+        </Text>
+      )}
+    </TouchableOpacity>
+  );
 
   return (
     <View style={styles.container}>
-      <ProfileHeader usuario={userData} />
+      {/* Header Simple - Ahora editable */}
+      <View style={styles.header}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {userData.nombre.charAt(0)}{userData.apellido.charAt(0)}
+          </Text>
+        </View>
+        <View style={styles.userInfo}>
+          {/* Nombre editable */}
+          <TouchableOpacity 
+            style={styles.nameContainer}
+            onPress={() => setEditingField('nombre')}
+          >
+            {editingField === 'nombre' ? (
+              <TextInput
+                style={styles.nameInput}
+                value={userData.nombre}
+                onChangeText={(text) => setUserData(prev => ({ ...prev, nombre: text }))}
+                onBlur={() => handleSave('nombre', userData.nombre)}
+                placeholder="Nombre"
+                autoFocus
+              />
+            ) : (
+              <Text style={styles.userName}>{userData.nombre}</Text>
+            )}
+          </TouchableOpacity>
 
-      <OptionsList
-        secciones={seccionesOpciones}
-        onOptionPress={handleOptionPress}
-      />
+          {/* Apellido editable */}
+          <TouchableOpacity 
+            style={styles.nameContainer}
+            onPress={() => setEditingField('apellido')}
+          >
+            {editingField === 'apellido' ? (
+              <TextInput
+                style={styles.nameInput}
+                value={userData.apellido}
+                onChangeText={(text) => setUserData(prev => ({ ...prev, apellido: text }))}
+                onBlur={() => handleSave('apellido', userData.apellido)}
+                placeholder="Apellido"
+                autoFocus
+              />
+            ) : (
+              <Text style={styles.userLastName}>{userData.apellido}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      {/* Modales con width dinámico */}
-      <PersonalDataModal
-        visible={activeModal === 'personal'}
-        onClose={() => setActiveModal(null)}
-        userData={userData}
-        onSave={handleSavePersonalData}
-        modalWidth={getModalWidth()}
-      />
+      {/* Información Personal */}
+      <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Información Personal</Text>
+          
+          {/* DNI NO editable */}
+          <EditableField 
+            label="DNI" 
+            field="dni" 
+            value={userData.dni} 
+            icon="card-outline"
+            editable={false} // ← DNI no editable
+          />
+          
+          <EditableField 
+            label="Teléfono" 
+            field="telefono" 
+            value={userData.telefono} 
+            icon="call-outline" 
+          />
+          
+          <EditableField 
+            label="Dirección" 
+            field="direccion" 
+            value={userData.direccion} 
+            icon="location-outline" 
+          />
+        </View>
 
-      <AddressesModal
-        visible={activeModal === 'addresses'}
-        onClose={() => setActiveModal(null)}
-        addresses={addresses}
-        onSave={handleSaveAddresses}
-        modalWidth={getModalWidth()}
-      />
+        {/* Cerrar Sesión */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color={theme.colors.error} />
+          <Text style={styles.logoutText}>Cerrar Sesión</Text>
+        </TouchableOpacity>
+      </ScrollView>
 
-      <PaymentMethodsModal
-        visible={activeModal === 'payments'}
-        onClose={() => setActiveModal(null)}
-        paymentMethods={paymentMethods}
-        onSave={handleSavePaymentMethods}
-        modalWidth={getModalWidth()}
-      />
-
-      <BottomNavigation
-        currentScreen="profile"
-        onNavigate={handleNavigation}
-      />
+      <BottomNavigation currentScreen="profile" onNavigate={handleNavigation} />
     </View>
   );
 };
@@ -212,6 +211,126 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.textMuted,
+  },
+  header: {
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.background2,
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: theme.colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.spacing.md,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: theme.colors.background,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  nameContainer: {
+    marginBottom: 4,
+  },
+  userName: {
+    fontSize: theme.typography.fontSize.large,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+  userLastName: {
+    fontSize: theme.typography.fontSize.large,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+  },
+  nameInput: {
+    fontSize: theme.typography.fontSize.large,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    backgroundColor: theme.colors.background2,
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  content: {
+    flex: 1,
+    padding: theme.spacing.lg,
+  },
+  section: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: theme.typography.fontSize.large,
+    fontWeight: 'bold',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  fieldContainer: {
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.background2,
+  },
+  fieldHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+  },
+  fieldLabel: {
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.text,
+    marginLeft: theme.spacing.sm,
+    fontWeight: '500',
+  },
+  fieldValue: {
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.textMuted,
+  },
+  nonEditableField: {
+    color: theme.colors.textMuted, // Color diferente para indicar que no es editable
+    fontStyle: 'normal',
+  },
+  input: {
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.background2,
+    padding: theme.spacing.sm,
+    borderRadius: theme.borderRadius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+  },
+  logoutText: {
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.error,
+    fontWeight: '500',
+    marginLeft: theme.spacing.sm,
   },
 });
 
