@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  Modal,
+  ScrollView
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import OpenCameraButton from '../components/OpenCameraButton';
@@ -13,10 +22,8 @@ import { createRequestWithPhoto } from "../features/requests/actions";
 import { Dimensions } from 'react-native';
 
 const { widthPantalla } = Dimensions.get('window');
+
 export default function HomeScreen({ navigation }) {
-
-
-
 
   const handleScan = async (asset) => {
     try {
@@ -73,6 +80,19 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
 
+  // request activa (no expirada)
+  const [tieneRequestActivo, setTieneRequestActivo] = useState(false);
+  const [requestActivaId, setRequestActivaId] = useState(null);
+
+  // hay alguna oferta (del usuario) que no esté entregada
+  const [tieneOfertaDeRequest, setTieneOfertaDeRequest] = useState(false);
+
+  // condición final: NO puede escanear si:
+  // - tiene request activa, o
+  // - tiene alguna oferta no entregada
+  const userPuedeEscanear = !tieneRequestActivo && !tieneOfertaDeRequest;
+
+  // listener de ofertas del usuario (para mostrar pedidos)
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -96,17 +116,104 @@ export default function HomeScreen({ navigation }) {
     return unsubscribe;
   }, []);
 
+  // listener para saber si el usuario tiene requests activas (no expiradas) — TAL CUAL LO QUERÉS
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    let unsubscribeRequests = null;
+    let intervalId = null;
+
+    const start = () => {
+      const now = Timestamp.now();
+
+      const qReq = query(
+        collection(db, "requests"),
+        where("userId", "==", user.uid),
+        where("expiresAt", ">", now)
+        // si querés: where("state", "==", "Abierto")
+      );
+
+      // cerramos listener anterior si ya existía
+      if (unsubscribeRequests) {
+        unsubscribeRequests();
+      }
+
+      unsubscribeRequests = onSnapshot(
+        qReq,
+        (snap) => {
+          const hayActivas = snap.docs.length > 0;
+          setTieneRequestActivo(hayActivas);
+          setRequestActivaId(hayActivas ? snap.docs[0].id : null);
+        },
+        (error) => {
+          console.error("Error al escuchar requests activas:", error);
+          setTieneRequestActivo(false);
+          setRequestActivaId(null);
+        }
+      );
+    };
+
+    // iniciar primera vez
+    start();
+
+    // reiniciar cada N segundos para refrescar el filtro de expiresAt
+    intervalId = setInterval(() => {
+      start();
+    }, 5 * 1000);
+
+    // cleanup
+    return () => {
+      if (unsubscribeRequests) unsubscribeRequests();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
+  // listener de offers del usuario con envioState != "Entregado"
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) {
+      setTieneOfertaDeRequest(false);
+      return;
+    }
+
+    let unsubscribeOffers = null;
+
+    const qOff = query(
+      collection(db, "offers"),
+      where("userId", "==", user.uid),
+      where("envioState", "!=", "Entregado")
+    );
+
+    unsubscribeOffers = onSnapshot(
+      qOff,
+      (snap) => {
+        // si existe al menos una oferta cuyo envioState != "Entregado",
+        // consideramos que hay una oferta "pendiente" o "en curso"
+        const hayOferta = snap.docs.length > 0;
+        setTieneOfertaDeRequest(hayOferta);
+      },
+      (error) => {
+        console.error("Error al escuchar offers no entregadas:", error);
+        setTieneOfertaDeRequest(false);
+      }
+    );
+
+    return () => {
+      if (unsubscribeOffers) unsubscribeOffers();
+    };
+  }, []);
 
   const getBadgeStyle = (state) => {
     switch (state) {
       case 'En preparación':
-        return { backgroundColor: 'rgba(255,165,0,0.12)' }; // naranja tenue
+        return { backgroundColor: 'rgba(255,165,0,0.12)' };
       case 'Listo para envío':
-        return { backgroundColor: 'rgba(0,123,255,0.08)' }; // celeste tenue
+        return { backgroundColor: 'rgba(0,123,255,0.08)' };
       case 'Enviando':
-        return { backgroundColor: 'rgba(103,58,183,0.08)' }; // morado tenue
+        return { backgroundColor: 'rgba(103,58,183,0.08)' };
       case 'Entregado':
-        return { backgroundColor: 'rgba(40,167,69,0.08)' }; // verde tenue
+        return { backgroundColor: 'rgba(40,167,69,0.08)' };
       default:
         return { backgroundColor: 'rgba(0,0,0,0.04)' };
     }
@@ -123,8 +230,9 @@ export default function HomeScreen({ navigation }) {
   };
 
   const renderOrder = ({ item }) => {
-    const visibleState = item.state === "Aceptada" ? item.envioState || "En preparación" : item.state;
-
+    const visibleState = item.state === "Aceptada"
+      ? item.envioState || "En preparación"
+      : item.state;
 
     return (
       <TouchableOpacity
@@ -150,9 +258,6 @@ export default function HomeScreen({ navigation }) {
       </TouchableOpacity>
     );
   };
-
-
-
 
   return (
     <View style={styles.container}>
@@ -198,14 +303,13 @@ export default function HomeScreen({ navigation }) {
               renderItem={renderOrder}
               contentContainerStyle={{
                 paddingBottom: 100,
-                paddingHorizontal: 0  // ✅ Sin padding horizontal extra
+                paddingHorizontal: 0
               }}
-              style={{ width: '100%' }}  // ✅ Ocupa todo el ancho
+              style={{ width: '100%' }}
             />
           </>
         )}
       </View>
-
 
       {/* ------------------- MODAL DE DETALLE ------------------- */}
       <Modal
@@ -230,7 +334,9 @@ export default function HomeScreen({ navigation }) {
 
                 <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: 5 }}>Medicamentos:</Text>
                 {selectedOrder.medicamentos?.map((m, i) => (
-                  <Text style={styles.farmaciaName} key={i}>• {m.nombreydosis} (x{m.cantidad}) - Precio unitario = ${m.subtotal / m.cantidad}</Text>
+                  <Text style={styles.farmaciaName} key={i}>
+                    • {m.nombreydosis} (x{m.cantidad}) - Precio unitario = ${m.subtotal / m.cantidad}
+                  </Text>
                 ))}
               </ScrollView>
             )}
@@ -245,12 +351,11 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
 
-
-      {/* ------------------- BARRA INFERIOR CON SCAN FUNCIONAL ------------------- */}
+      {/* ------------------- BARRA INFERIOR CON SCAN CONDICIONAL ------------------- */}
       <BottomNavigation
         currentScreen="home"
         onNavigate={handleNavigation}
-        scanComponent={ScanButtonComponent}
+        scanComponent={userPuedeEscanear ? ScanButtonComponent : null}
       />
 
       <StatusBar style="auto" />
@@ -264,7 +369,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background2,
     justifyContent: 'space-between',
   },
-
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -280,48 +384,40 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
   },
-
   leftSection: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
-
   centerSection: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   rightSection: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
-
   logoButton: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   logoText: {
     fontSize: theme.typography.fontSize.large,
     fontWeight: theme.typography.fontWeight.bold,
     color: theme.colors.text,
     textAlign: 'center',
   },
-
   content: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: theme.spacing.lg,
   },
-
-  /* --- Título principal (cuando no hay pedidos) --- */
   title: {
     fontSize: theme.typography.fontSize.title,
     fontWeight: theme.typography.fontWeight.bold,
@@ -329,54 +425,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: theme.spacing.sm,
   },
-
   subtitle: {
     fontSize: theme.typography.fontSize.medium,
     color: theme.colors.textMuted,
     textAlign: 'center',
     marginBottom: theme.spacing.xl,
   },
-
-  /* --- Título "Pedidos" --- */
   titlePedidos: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.text,  // negro
+    color: theme.colors.text,
     textAlign: 'center',
-    marginTop: 18,             // más separado de la barra superior
+    marginTop: 18,
     marginBottom: 12,
   },
-
   cameraButtonContainer: {
     alignItems: 'center',
     marginTop: theme.spacing.xl,
   },
-
   cameraButtonText: {
     fontSize: theme.typography.fontSize.small,
     color: theme.colors.textMuted,
     marginTop: theme.spacing.sm,
     fontWeight: theme.typography.fontWeight.medium,
   },
-
   scanButton: {
     marginTop: -theme.spacing.lg,
   },
-
   iconButton: {
     alignItems: 'center',
     padding: theme.spacing.sm,
   },
-
-  /* --- Cada pedido (card) --- */
   orderCard: {
     backgroundColor: '#fff',
     borderRadius: 14,
     paddingVertical: 16,
     paddingHorizontal: 16,
     marginVertical: 8,
-    marginHorizontal: 16,  // ✅ Esto hace que se adapte al ancho
-    width: 'auto',         // ✅ Se ajusta automáticamente
+    marginHorizontal: 16,
+    width: 'auto',
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowOffset: { width: 0, height: 2 },
@@ -385,14 +472,12 @@ const styles = StyleSheet.create({
     minHeight: 110,
     justifyContent: 'center',
   },
-
   orderHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',     // centra verticalmente el estado
+    alignItems: 'center',
     marginBottom: 10,
   },
-
   farmaciaName: {
     fontSize: 17,
     fontWeight: '700',
@@ -400,8 +485,6 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-
-  /* --- Badge de estado --- */
   stateBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -410,44 +493,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minWidth: 110,
   },
-
   orderStateText: {
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
   },
-
   orderAddress: {
     color: theme.colors.textMuted,
     fontSize: 14,
     marginBottom: 8,
   },
-
   orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-
   orderPrice: {
     fontSize: 15,
     fontWeight: '600',
     color: theme.colors.text,
   },
-
   orderTime: {
     fontSize: 15,
     color: theme.colors.textMuted,
   },
-
-  /* --- Modal de detalle --- */
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-
   modalContent: {
     backgroundColor: '#fff',
     borderRadius: 10,
@@ -455,13 +530,11 @@ const styles = StyleSheet.create({
     width: '85%',
     maxHeight: '80%',
   },
-
   modalTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 10,
   },
-
   closeButton: {
     backgroundColor: theme.colors.primary,
     padding: 10,
