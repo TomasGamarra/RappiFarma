@@ -49,7 +49,7 @@ export default function RegisterScreen({ navigation }) {
       const map = {
         "auth/email-already-in-use": "El usuario ya está registrado",
         "auth/invalid-email": "DNI inválido",
-        "auth/weak-password": "Contraseña débil",
+        "auth/weak-password": "Contraseña débil (al menos 6 caracteres)",
         "auth/invalid-credential": "Credenciales inválidas",
       };
       Toast.show({

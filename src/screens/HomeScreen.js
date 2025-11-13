@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
@@ -80,7 +80,8 @@ export default function HomeScreen({ navigation }) {
     const q = query(
       collection(db, 'offers'),
       where('userId', '==', user.uid),
-      where('state', 'in', ['Aceptada', 'En preparación', 'Listo para envío', 'Enviando', 'Entregado'])
+      where('state', 'in', ['Aceptada', 'En preparación', 'Listo para envío', 'Enviando', 'Entregado']),
+      orderBy('timeStamp', 'desc')
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
