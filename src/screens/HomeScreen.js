@@ -240,7 +240,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setSelectedOrder(item)}
       >
         <View style={styles.orderHeader}>
-          <Text style={styles.farmaciaName} numberOfLines={1}>{item.farmacia}</Text>
+          <Text style={[styles.farmaciaName, { fontWeight: 'bold' }]} numberOfLines={1}>{item.farmacia}</Text>
 
           <View style={[styles.stateBadge, getBadgeStyle(visibleState)]}>
             <Text style={[styles.orderStateText, getStateTextColor(visibleState)]}>
@@ -479,11 +479,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   farmaciaName: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.medium,
     color: theme.colors.text,
-    flex: 1,
-    marginRight: 10,
+    marginBottom: theme.spacing.sm,
+    lineHeight: 20,
   },
   stateBadge: {
     paddingHorizontal: 10,
