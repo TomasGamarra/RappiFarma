@@ -10,10 +10,9 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const previousOffersRef = useRef([]);
+  const readNotificationsRef = useRef(new Set()); // ✅ NUEVO: Persistir notificaciones leídas
 
   useEffect(() => {
-    if (!visible) return;
-
     const user = auth.currentUser;
     if (!user) {
       setLoading(false);
@@ -49,20 +48,37 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
         
         // Eliminar duplicados y ordenar por timestamp
         const uniqueNotifications = removeDuplicateNotifications(allNotifications);
-        uniqueNotifications.sort((a, b) => {
+        
+        // ✅ CORRECCIÓN: Mantener estado de "leído" de notificaciones existentes
+        const notificationsWithReadState = uniqueNotifications.map(notification => {
+          // Si ya estaba marcada como leída, mantener ese estado
+          if (readNotificationsRef.current.has(notification.id)) {
+            return { ...notification, read: true };
+          }
+          // Si es una notificación nueva, verificar si ya existe una similar leída
+          const existingReadNotification = Array.from(readNotificationsRef.current).find(
+            readId => readId.includes(notification.offerId) && readId.includes(notification.type)
+          );
+          if (existingReadNotification) {
+            return { ...notification, read: true };
+          }
+          return notification;
+        });
+        
+        notificationsWithReadState.sort((a, b) => {
           const timeA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
           const timeB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
           return timeB - timeA;
         });
 
-        console.log("📢 Notificaciones totales:", uniqueNotifications.length);
+        console.log("📢 Notificaciones totales:", notificationsWithReadState.length);
         
-        setNotifications(uniqueNotifications);
+        setNotifications(notificationsWithReadState);
         
         // Notificar a las screens sobre las notificaciones no leídas
         if (onNotificationsUpdate) {
-          const unreadCount = uniqueNotifications.filter(n => !n.read).length;
-          onNotificationsUpdate(unreadCount, uniqueNotifications);
+          const unreadCount = notificationsWithReadState.filter(n => !n.read).length;
+          onNotificationsUpdate(unreadCount, notificationsWithReadState);
         }
         
         setLoading(false);
@@ -88,35 +104,24 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
       let notification = null;
       
       switch (offer.state) {
-        case 'Pendiente':
-          notification = {
-            id: `offer_${offer.id}`,
-            type: 'nueva_oferta',
-            farmaciaNombre: offer.farmacia || 'Farmacia',
-            timestamp: offer.timeStamp || offer.timestamp || new Date(),
-            message: `Te llegó una oferta de "${offer.farmacia || 'una farmacia'}"`,
-            read: false,
-            priority: 1,
-            offerId: offer.id
-          };
-          break;
-          
-        case 'Entregado':
-          notification = {
-            id: `delivered_${offer.id}`,
-            type: 'pedido_entregado',
-            farmaciaNombre: offer.farmacia || 'Farmacia',
-            timestamp: offer.timeStamp || offer.timestamp || new Date(),
-            message: `¡Tu pedido de ${offer.farmacia || 'la farmacia'} ha sido entregado!`,
-            read: false,
-            priority: 2,
-            offerId: offer.id
-          };
+        case 'Aceptada':
+          if (offer.envioState === 'Entregado') {
+            notification = {
+              id: `delivered_${offer.id}`,
+              type: 'pedido_entregado',
+              farmaciaNombre: offer.farmacia || 'Farmacia',
+              timestamp: offer.timeStamp,
+              message: `¡Tu pedido de ${offer.farmacia || 'la farmacia'} ha sido entregado!`,
+              read: false,
+              priority: 2,
+              offerId: offer.id
+            };
+          }
           break;
           
         case 'Rechazada':
           // Buscar información del rechazo si está disponible
-          const rejectionReason = offer.rejectionReason || 'No se especificó motivo';
+          const rejectionReason = offer.detalle || 'No se especificó motivo';
           notification = {
             id: `rejected_${offer.id}`,
             type: 'rechazo',
@@ -128,16 +133,17 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
             offerId: offer.id
           };
           break;
-          
-        case 'Enviando':
+
+        case 'Pendiente':
+          // ✅ AÑADIR: Notificaciones para ofertas pendientes
           notification = {
-            id: `shipping_${offer.id}`,
-            type: 'info',
+            id: `new_offer_${offer.id}`,
+            type: 'nueva_oferta',
             farmaciaNombre: offer.farmacia || 'Farmacia',
-            timestamp: offer.timeStamp || offer.timestamp || new Date(),
-            message: `Tu pedido de ${offer.farmacia || 'la farmacia'} está en camino`,
+            timestamp: offer.timeStamp || new Date(),
+            message: `Te llegó una oferta de "${offer.farmacia || 'una farmacia'}"`,
             read: false,
-            priority: 3,
+            priority: 1,
             offerId: offer.id
           };
           break;
@@ -161,7 +167,7 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
       if (!previousOffer) return; // No notificar para ofertas nuevas (ya se manejan arriba)
       
       // Detectar cambio a "Entregado"
-      if (previousOffer.state !== 'Entregado' && currentOffer.state === 'Entregado') {
+      if (previousOffer.envioState !== 'Entregado' && currentOffer.envioState === 'Entregado') {
         newNotifications.push({
           id: `change_delivered_${currentOffer.id}_${Date.now()}`,
           type: 'pedido_entregado',
@@ -176,13 +182,27 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
       
       // Detectar cambio a "Rechazada"
       if (previousOffer.state !== 'Rechazada' && currentOffer.state === 'Rechazada') {
-        const rejectionReason = currentOffer.rejectionReason || 'No se especificó motivo';
+        const rejectionReason = currentOffer.detalle || 'No se especificó motivo';
         newNotifications.push({
           id: `change_rejected_${currentOffer.id}_${Date.now()}`,
           type: 'rechazo',
           farmaciaNombre: currentOffer.farmacia || 'Farmacia',
           timestamp: new Date(),
           message: `${currentOffer.farmacia || 'Una farmacia'} rechazó tu receta: ${rejectionReason}`,
+          read: false,
+          priority: 1,
+          offerId: currentOffer.id
+        });
+      }
+
+      // Detectar nueva oferta pendiente
+      if (previousOffer.state !== 'Pendiente' && currentOffer.state === 'Pendiente') {
+        newNotifications.push({
+          id: `change_new_offer_${currentOffer.id}_${Date.now()}`,
+          type: 'nueva_oferta',
+          farmaciaNombre: currentOffer.farmacia || 'Farmacia',
+          timestamp: new Date(),
+          message: `Te llegó una oferta de "${currentOffer.farmacia || 'una farmacia'}"`,
           read: false,
           priority: 1,
           offerId: currentOffer.id
@@ -254,6 +274,9 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
   };
 
   const markAsRead = (notificationId) => {
+    // ✅ CORRECCIÓN: Actualizar el ref para persistir entre re-renders
+    readNotificationsRef.current.add(notificationId);
+    
     setNotifications(prev => 
       prev.map(notif => 
         notif.id === notificationId 
@@ -263,10 +286,21 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
     );
     
     // Actualizar el contador después de marcar como leído
+    const updatedNotifications = notifications.map(notif => 
+      notif.id === notificationId ? { ...notif, read: true } : notif
+    );
+    
     if (onNotificationsUpdate) {
-      const updatedUnreadCount = notifications.filter(n => !n.read && n.id !== notificationId).length;
-      onNotificationsUpdate(updatedUnreadCount, notifications);
+      const updatedUnreadCount = updatedNotifications.filter(n => !n.read).length;
+      onNotificationsUpdate(updatedUnreadCount, updatedNotifications);
     }
+  };
+
+  // ✅ NUEVO: Limpiar notificaciones leídas cuando se cierra el modal
+  const handleClose = () => {
+    // Opcional: Aquí podrías guardar las notificaciones leídas en AsyncStorage
+    // para persistirlas entre sesiones de la app
+    onClose();
   };
 
   return (
@@ -274,7 +308,7 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View style={styles.modalContainer}>
         <View style={styles.notificationsModalContent}>
@@ -282,7 +316,7 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
             <Text style={styles.notificationsTitle}>Notificaciones</Text>
             <TouchableOpacity 
               style={styles.closeNotificationsButton}
-              onPress={onClose}
+              onPress={handleClose}
             >
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
