@@ -14,7 +14,10 @@ export default function OfertasScreen({ navigation }) {
   const [sortBy, setSortBy] = useState('monto');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  
+  // ESTADOS PARA NOTIFICACIONES
+  const [notificationsCount, setNotificationsCount] = useState(0);
+  const [allNotifications, setAllNotifications] = useState([]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -40,6 +43,12 @@ export default function OfertasScreen({ navigation }) {
 
     return () => unsubscribe();
   }, []);
+
+  // FUNCIÓN PARA ACTUALIZAR NOTIFICACIONES
+  const handleNotificationsUpdate = (count, notifications) => {
+    setNotificationsCount(count);
+    setAllNotifications(notifications || []);
+  };
 
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
@@ -149,12 +158,26 @@ export default function OfertasScreen({ navigation }) {
         </View>
 
         <View style={styles.rightSection}>
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={() => setShowNotifications(true)}
-          >
-            <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
-          </TouchableOpacity>
+          {/* BOTÓN DE NOTIFICACIONES CON INDICADOR */}
+          <View style={styles.notificationContainer}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={() => setShowNotifications(true)}
+            >
+              <Ionicons 
+                name={notificationsCount > 0 ? "notifications" : "notifications-outline"} 
+                size={28} 
+                color={notificationsCount > 0 ? "#FF3B30" : theme.colors.primary} 
+              />
+            </TouchableOpacity>
+            {notificationsCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>
+                  {notificationsCount > 9 ? '9+' : notificationsCount}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -254,7 +277,7 @@ export default function OfertasScreen({ navigation }) {
       <NotificationsModal
         visible={showNotifications}
         onClose={() => setShowNotifications(false)}
-        notifications={notifications}
+        onNotificationsUpdate={handleNotificationsUpdate}
       />
 
       {/* BOTTOM NAVIGATION ACTUALIZADO */}
@@ -266,7 +289,6 @@ export default function OfertasScreen({ navigation }) {
   );
 };
 
-// ... (los estilos se mantienen igual, eliminando solo los del modal de notificaciones)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -418,5 +440,28 @@ const styles = StyleSheet.create({
   },
   rejectButton: {
     backgroundColor: '#ffe6e6',
+  },
+  // NUEVOS ESTILOS PARA NOTIFICACIONES
+  notificationContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.background,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

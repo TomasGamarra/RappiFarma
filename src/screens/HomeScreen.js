@@ -20,7 +20,7 @@ import { theme } from '../styles/theme';
 import Toast from "react-native-toast-message";
 import { createRequestWithPhoto } from "../features/requests/actions";
 import { Dimensions } from 'react-native';
-import NotificationsModal from '../components/NotificationsModal'; // AÑADIR ESTA IMPORTACIÓN
+import NotificationsModal from '../components/NotificationsModal';
 
 const { widthPantalla } = Dimensions.get('window');
 
@@ -81,8 +81,10 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   
-  // AÑADIR ESTADO PARA EL MODAL DE NOTIFICACIONES
+  // ESTADOS PARA NOTIFICACIONES
   const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
+  const [notificationsCount, setNotificationsCount] = useState(0);
+  const [allNotifications, setAllNotifications] = useState([]);
 
   // request activa (no expirada)
   const [tieneRequestActivo, setTieneRequestActivo] = useState(false);
@@ -96,7 +98,12 @@ export default function HomeScreen({ navigation }) {
   // - tiene alguna oferta no entregada
   const userPuedeEscanear = !tieneRequestActivo && !tieneOfertaDeRequest;
 
-  // AÑADIR FUNCIÓN PARA ABRIR EL MODAL DE NOTIFICACIONES
+  // FUNCIÓN PARA ACTUALIZAR NOTIFICACIONES
+  const handleNotificationsUpdate = (count, notifications) => {
+    setNotificationsCount(count);
+    setAllNotifications(notifications || []);
+  };
+
   const handleOpenNotifications = () => {
     setNotificationsModalVisible(true);
   };
@@ -287,13 +294,26 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.rightSection}>
-          {/* MODIFICAR ESTE BOTÓN PARA ABRIR EL MODAL DE NOTIFICACIONES */}
-          <TouchableOpacity 
-            style={styles.iconButton}
-            onPress={handleOpenNotifications}
-          >
-            <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
-          </TouchableOpacity>
+          {/* BOTÓN DE NOTIFICACIONES CON INDICADOR */}
+          <View style={styles.notificationContainer}>
+            <TouchableOpacity 
+              style={styles.iconButton}
+              onPress={handleOpenNotifications}
+            >
+              <Ionicons 
+                name={notificationsCount > 0 ? "notifications" : "notifications-outline"} 
+                size={28} 
+                color={notificationsCount > 0 ? "#FF3B30" : theme.colors.primary} 
+              />
+            </TouchableOpacity>
+            {notificationsCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>
+                  {notificationsCount > 9 ? '9+' : notificationsCount}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
@@ -364,10 +384,11 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* ------------------- AÑADIR MODAL DE NOTIFICACIONES ------------------- */}
+      {/* ------------------- MODAL DE NOTIFICACIONES ------------------- */}
       <NotificationsModal
         visible={notificationsModalVisible}
         onClose={() => setNotificationsModalVisible(false)}
+        onNotificationsUpdate={handleNotificationsUpdate}
       />
 
       {/* ------------------- BARRA INFERIOR CON SCAN CONDICIONAL ------------------- */}
@@ -560,5 +581,28 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 15,
+  },
+  // NUEVOS ESTILOS PARA NOTIFICACIONES
+  notificationContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FF3B30',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.background,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });
