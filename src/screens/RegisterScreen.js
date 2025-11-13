@@ -23,11 +23,22 @@ export default function RegisterScreen({ navigation }) {
     const dir = direccion.trim();
     const pass = password;
 
+
+    if (!n || !a || !d || !t || !dir || !pass) {
+      Toast.show({
+        type: "error",
+        text1: "Campos incompletos",
+        text2: "Por favor, completá todos los campos antes de registrarte.",
+      });
+      return;
+    }
+
     const soloNumeros = /^\d+$/;
     if (!soloNumeros.test(d)) {
       Toast.show({ type: "error", text1: "El DNI debe contener solo números" });
       return;
     }
+
 
     try {
       setLoading(true);
@@ -38,13 +49,12 @@ export default function RegisterScreen({ navigation }) {
       const map = {
         "auth/email-already-in-use": "El usuario ya está registrado",
         "auth/invalid-email": "DNI inválido",
-        "auth/weak-password": "Contraseña débil",
+        "auth/weak-password": "Contraseña débil (al menos 6 caracteres)",
         "auth/invalid-credential": "Credenciales inválidas",
       };
       Toast.show({
         type: "error",
-        text1: map[e?.code] || "Error al registrar",
-        text2: e?.message || "Completá todos los campos correctamente"
+        text1: map[e?.code] || "Error al registrar"
       });
     } finally {
       setLoading(false);

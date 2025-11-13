@@ -78,6 +78,7 @@ export async function createRequestWithPhoto({
       requestId,
       createdAt,
       thumb,
+      expiresAt,
       userName,
       direccion: address,
       userId,       // ← dueñx del pedido para reglas y limpieza
