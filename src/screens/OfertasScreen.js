@@ -1,5 +1,4 @@
-
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 import React, { useEffect, useState } from 'react';
@@ -7,13 +6,15 @@ import { collection, query, where, onSnapshot, orderBy, getDocs, doc, deleteDoc,
 import { db } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 import BottomNavigation from '../components/BottomNavigation';
-
+import NotificationsModal from '../components/NotificationsModal';
 
 export default function OfertasScreen({ navigation }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('monto');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -24,7 +25,6 @@ export default function OfertasScreen({ navigation }) {
       where("userId", "==", user.uid),
       where("state", "==", "Pendiente")
     );
-
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const offersData = querySnapshot.docs.map((doc) => ({
@@ -41,16 +41,12 @@ export default function OfertasScreen({ navigation }) {
     return () => unsubscribe();
   }, []);
 
-
-  //comentario inutil
-
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
     if (sortBy === 'monto') return a.preciototal - b.preciototal;
     if (sortBy === 'tiempoEspera') return a.tiempoEspera - b.tiempoEspera;
     return 0;
   });
-
 
   // Navegación del Bottom Navigation
   const handleNavigation = (screen) => {
@@ -128,9 +124,6 @@ export default function OfertasScreen({ navigation }) {
     }
   };
 
-
-
-
   const handleReject = async (offer) => {
     try {
       await deleteDoc(doc(db, "offers", offer.id));
@@ -139,7 +132,6 @@ export default function OfertasScreen({ navigation }) {
       Alert.alert("Error", "No se pudo rechazar la oferta. Intenta nuevamente.");
     }
   };
-
 
   return (
     <View style={styles.container}>
@@ -157,7 +149,10 @@ export default function OfertasScreen({ navigation }) {
         </View>
 
         <View style={styles.rightSection}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => setShowNotifications(true)}
+          >
             <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
         </View>
@@ -255,6 +250,13 @@ export default function OfertasScreen({ navigation }) {
         </ScrollView>
       </View>
 
+      {/* ------------------- MODAL DE NOTIFICACIONES ------------------- */}
+      <NotificationsModal
+        visible={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+      />
+
       {/* BOTTOM NAVIGATION ACTUALIZADO */}
       <BottomNavigation
         currentScreen="ofertas"
@@ -264,6 +266,7 @@ export default function OfertasScreen({ navigation }) {
   );
 };
 
+// ... (los estilos se mantienen igual, eliminando solo los del modal de notificaciones)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
