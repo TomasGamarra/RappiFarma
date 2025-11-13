@@ -127,41 +127,13 @@ const ProfileScreen = ({ navigation }) => {
         </View>
         <View style={styles.userInfo}>
           {/* Nombre editable */}
-          <TouchableOpacity
-            style={styles.nameContainer}
-            onPress={() => setEditingField('nombre')}
-          >
-            {editingField === 'nombre' ? (
-              <TextInput
-                style={styles.nameInput}
-                value={userData.nombre}
-                onChangeText={(text) => setUserData(prev => ({ ...prev, nombre: text }))}
-                onBlur={() => handleSave('nombre', userData.nombre)}
-                placeholder="Nombre"
-                autoFocus
-              />
-            ) : (
-              <Text style={styles.userName}>{userData.nombre}</Text>
-            )}
+          <TouchableOpacity>
+            <Text style={styles.userName}>{userData.nombre}</Text>
           </TouchableOpacity>
 
           {/* Apellido editable */}
-          <TouchableOpacity
-            style={styles.nameContainer}
-            onPress={() => setEditingField('apellido')}
-          >
-            {editingField === 'apellido' ? (
-              <TextInput
-                style={styles.nameInput}
-                value={userData.apellido}
-                onChangeText={(text) => setUserData(prev => ({ ...prev, apellido: text }))}
-                onBlur={() => handleSave('apellido', userData.apellido)}
-                placeholder="Apellido"
-                autoFocus
-              />
-            ) : (
-              <Text style={styles.userLastName}>{userData.apellido}</Text>
-            )}
+          <TouchableOpacity>
+            <Text style={styles.userLastName}>{userData.apellido}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -185,6 +157,7 @@ const ProfileScreen = ({ navigation }) => {
             field="telefono"
             value={userData.telefono}
             icon="call-outline"
+            editable={false}
           />
 
           <EditableField
@@ -192,6 +165,7 @@ const ProfileScreen = ({ navigation }) => {
             field="direccion"
             value={userData.direccion}
             icon="location-outline"
+            editable={false}
           />
         </View>
 
