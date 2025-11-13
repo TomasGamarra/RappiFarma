@@ -14,17 +14,24 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import OpenCameraButton from '../components/OpenCameraButton';
-import ButtonPrimary from '../components/ButtonPrimary';
 import BottomNavigation from '../components/BottomNavigation';
 import { theme } from '../styles/theme';
 import Toast from "react-native-toast-message";
 import { createRequestWithPhoto } from "../features/requests/actions";
 import { Dimensions } from 'react-native';
 import NotificationsModal from '../components/NotificationsModal';
+import { useNotifications } from '../contexts/NotificationsContext';
 
 const { widthPantalla } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
+  // ✅ USAR CONTEXTO EN LUGAR DE ESTADOS LOCALES
+  const {
+    notificationsModalVisible,
+    notificationsCount,
+    openNotificationsModal,
+    closeNotificationsModal
+  } = useNotifications();
 
   const handleScan = async (asset) => {
     try {
@@ -58,8 +65,8 @@ export default function HomeScreen({ navigation }) {
       case 'ofertas':
         navigation.replace('Ofertas');
         break;
-      case 'settings':
-        navigation.replace('Ajustes');
+      case 'notifications':
+        openNotificationsModal(); // ✅ USAR FUNCIÓN DEL CONTEXTO
         break;
       default:
         navigation.replace('Home');
@@ -81,10 +88,10 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   
-  // ESTADOS PARA NOTIFICACIONES
-  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
-  const [notificationsCount, setNotificationsCount] = useState(0);
-  const [allNotifications, setAllNotifications] = useState([]);
+  // ✅ ELIMINAR ESTOS ESTADOS LOCALES - usar contexto
+  // const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
+  // const [notificationsCount, setNotificationsCount] = useState(0);
+  // const [allNotifications, setAllNotifications] = useState([]);
 
   // request activa (no expirada)
   const [tieneRequestActivo, setTieneRequestActivo] = useState(false);
@@ -98,15 +105,7 @@ export default function HomeScreen({ navigation }) {
   // - tiene alguna oferta no entregada
   const userPuedeEscanear = !tieneRequestActivo && !tieneOfertaDeRequest;
 
-  // FUNCIÓN PARA ACTUALIZAR NOTIFICACIONES
-  const handleNotificationsUpdate = (count, notifications) => {
-    setNotificationsCount(count);
-    setAllNotifications(notifications || []);
-  };
-
-  const handleOpenNotifications = () => {
-    setNotificationsModalVisible(true);
-  };
+  // ✅ ELIMINAR handleNotificationsUpdate - se maneja en el contexto
 
   // listener de ofertas del usuario (para mostrar pedidos)
   useEffect(() => {
@@ -132,7 +131,7 @@ export default function HomeScreen({ navigation }) {
     return unsubscribe;
   }, []);
 
-  // listener para saber si el usuario tiene requests activas (no expiradas) — TAL CUAL LO QUERÉS
+  // listener para saber si el usuario tiene requests activas (no expiradas)
   useEffect(() => {
     const user = auth.currentUser;
     if (!user) return;
@@ -147,10 +146,8 @@ export default function HomeScreen({ navigation }) {
         collection(db, "requests"),
         where("userId", "==", user.uid),
         where("expiresAt", ">", now)
-        // si querés: where("state", "==", "Abierto")
       );
 
-      // cerramos listener anterior si ya existía
       if (unsubscribeRequests) {
         unsubscribeRequests();
       }
@@ -170,15 +167,11 @@ export default function HomeScreen({ navigation }) {
       );
     };
 
-    // iniciar primera vez
     start();
-
-    // reiniciar cada N segundos para refrescar el filtro de expiresAt
     intervalId = setInterval(() => {
       start();
     }, 5 * 1000);
 
-    // cleanup
     return () => {
       if (unsubscribeRequests) unsubscribeRequests();
       if (intervalId) clearInterval(intervalId);
@@ -204,8 +197,6 @@ export default function HomeScreen({ navigation }) {
     unsubscribeOffers = onSnapshot(
       qOff,
       (snap) => {
-        // si existe al menos una oferta cuyo envioState != "Entregado",
-        // consideramos que hay una oferta "pendiente" o "en curso"
         const hayOferta = snap.docs.length > 0;
         setTieneOfertaDeRequest(hayOferta);
       },
@@ -277,45 +268,6 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* ------------------- BARRA SUPERIOR ------------------- */}
-      <View style={styles.topBar}>
-        <View style={styles.leftSection}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="menu-outline" size={28} color={theme.colors.primary} />
-          </TouchableOpacity>
-
-          <View style={{ flex: 1 }} />
-        </View>
-
-        <View style={styles.centerSection}>
-          <TouchableOpacity style={styles.logoButton}>
-            <Text style={styles.logoText}>RappiFarma</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.rightSection}>
-          {/* BOTÓN DE NOTIFICACIONES CON INDICADOR */}
-          <View style={styles.notificationContainer}>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={handleOpenNotifications}
-            >
-              <Ionicons 
-                name={notificationsCount > 0 ? "notifications" : "notifications-outline"} 
-                size={28} 
-                color={notificationsCount > 0 ? "#FF3B30" : theme.colors.primary} 
-              />
-            </TouchableOpacity>
-            {notificationsCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>
-                  {notificationsCount > 9 ? '9+' : notificationsCount}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
 
       {/* ------------------- CONTENIDO PRINCIPAL ------------------- */}
       <View style={styles.content}>
@@ -387,8 +339,8 @@ export default function HomeScreen({ navigation }) {
       {/* ------------------- MODAL DE NOTIFICACIONES ------------------- */}
       <NotificationsModal
         visible={notificationsModalVisible}
-        onClose={() => setNotificationsModalVisible(false)}
-        onNotificationsUpdate={handleNotificationsUpdate}
+        onClose={closeNotificationsModal} // ✅ USAR FUNCIÓN DEL CONTEXTO
+        // ✅ ELIMINAR: onNotificationsUpdate ya no es necesario
       />
 
       {/* ------------------- BARRA INFERIOR CON SCAN CONDICIONAL ------------------- */}
@@ -396,13 +348,14 @@ export default function HomeScreen({ navigation }) {
         currentScreen="home"
         onNavigate={handleNavigation}
         scanComponent={userPuedeEscanear ? ScanButtonComponent : null}
+        notificationsCount={notificationsCount} // ✅ DEL CONTEXTO
       />
-
       <StatusBar style="auto" />
     </View>
   );
 }
 
+// ... (los estilos se mantienen igual)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -582,7 +535,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 15,
   },
-  // NUEVOS ESTILOS PARA NOTIFICACIONES
   notificationContainer: {
     position: 'relative',
     alignItems: 'center',

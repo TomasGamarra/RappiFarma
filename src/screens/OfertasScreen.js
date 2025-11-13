@@ -7,17 +7,26 @@ import { db } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 import BottomNavigation from '../components/BottomNavigation';
 import NotificationsModal from '../components/NotificationsModal';
+import { useNotifications } from '../contexts/NotificationsContext'; // ✅ IMPORTAR
 
 export default function OfertasScreen({ navigation }) {
+  // ✅ USAR CONTEXTO
+  const {
+    notificationsModalVisible,
+    notificationsCount,
+    openNotificationsModal,
+    closeNotificationsModal
+  } = useNotifications();
+
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('monto');
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   
-  // ESTADOS PARA NOTIFICACIONES
-  const [notificationsCount, setNotificationsCount] = useState(0);
-  const [allNotifications, setAllNotifications] = useState([]);
+  // ✅ ELIMINAR estados locales de notificaciones
+  // const [showNotifications, setShowNotifications] = useState(false);
+  // const [notificationsCount, setNotificationsCount] = useState(0);
+  // const [allNotifications, setAllNotifications] = useState([]);
 
   useEffect(() => {
     const user = auth.currentUser;
@@ -44,11 +53,7 @@ export default function OfertasScreen({ navigation }) {
     return () => unsubscribe();
   }, []);
 
-  // FUNCIÓN PARA ACTUALIZAR NOTIFICACIONES
-  const handleNotificationsUpdate = (count, notifications) => {
-    setNotificationsCount(count);
-    setAllNotifications(notifications || []);
-  };
+  // ✅ ELIMINAR handleNotificationsUpdate - se maneja en el contexto
 
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
@@ -67,13 +72,13 @@ export default function OfertasScreen({ navigation }) {
         navigation.replace('Profile');
         break;
       case 'scan':
-        navigation.replace('Home'); // Redirigir al home para escanear
+        navigation.replace('Home');
         break;
       case 'ofertas':
         // Ya estamos en ofertas
         break;
-      case 'settings':
-        navigation.replace('Ajustes');
+      case 'notifications':
+        openNotificationsModal(); // ✅ USAR FUNCIÓN DEL CONTEXTO
         break;
       default:
         navigation.replace('Home');
@@ -86,18 +91,15 @@ export default function OfertasScreen({ navigation }) {
       if (!uid) throw new Error("NO_AUTH");
       const rid = String(selectedOffer?.requestId || "");
 
-      // 0) Aceptar la oferta elegida
       await updateDoc(doc(db, "offers", selectedOffer.id), {
         state: "Aceptada",
         envioState: "En preparación",
       });
 
-      // 1) Recolectar TODOS los IDs de farmacias desde /users
       const qPharms = query(collection(db, "users"), where("role", "==", "farmacia"));
       const phSnap = await getDocs(qPharms);
       const farmaciaIds = phSnap.docs.map(d => String(d.id));
 
-      // 2) Traer ofertas pendientes del usuario y borrarlas excepto la aceptada
       const qPend = query(
         collection(db, "offers"),
         where("userId", "==", uid),
@@ -110,7 +112,6 @@ export default function OfertasScreen({ navigation }) {
           : Promise.resolve())
       );
 
-      // 3) Borrar punteros en /inbox/{farmaciaId}/requests/{requestId}
       if (rid) {
         await Promise.all(
           farmaciaIds.map(fid =>
@@ -120,7 +121,6 @@ export default function OfertasScreen({ navigation }) {
         );
       }
 
-      // 4) Borrar la request raíz
       if (rid) {
         await deleteDoc(doc(db, "requests", rid));
       }
@@ -144,49 +144,12 @@ export default function OfertasScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Barra Superior */}
-      <View style={styles.topBar}>
-        <View style={styles.leftSection}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="menu-outline" size={28} color={theme.colors.primary} />
-          </TouchableOpacity>
-          <View style={{ flex: 1 }} />
-        </View>
-
-        <View style={styles.centerSection}>
-          <Text style={styles.logoText}>Ofertas</Text>
-        </View>
-
-        <View style={styles.rightSection}>
-          {/* BOTÓN DE NOTIFICACIONES CON INDICADOR */}
-          <View style={styles.notificationContainer}>
-            <TouchableOpacity 
-              style={styles.iconButton}
-              onPress={() => setShowNotifications(true)}
-            >
-              <Ionicons 
-                name={notificationsCount > 0 ? "notifications" : "notifications-outline"} 
-                size={28} 
-                color={notificationsCount > 0 ? "#FF3B30" : theme.colors.primary} 
-              />
-            </TouchableOpacity>
-            {notificationsCount > 0 && (
-              <View style={styles.notificationBadge}>
-                <Text style={styles.badgeText}>
-                  {notificationsCount > 9 ? '9+' : notificationsCount}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      </View>
 
       {/* CONTENIDO PRINCIPAL */}
       <View style={styles.content}>
 
         {/* ------------------- SECCIÓN DE FILTROS ------------------- */}
         {!loading && (<>
-          {/* BOTÓN DE FILTRO */}
           <TouchableOpacity
             style={styles.filterButton}
             onPress={() => setShowSortMenu(!showSortMenu)}
@@ -194,7 +157,6 @@ export default function OfertasScreen({ navigation }) {
             <Text style={{ color: '#fff', fontWeight: 'bold' }}>Filtrar</Text>
           </TouchableOpacity>
 
-          {/* MENÚ DE SELECCIÓN */}
           {showSortMenu && (
             <View style={styles.sortMenu}>
               <TouchableOpacity
@@ -275,20 +237,22 @@ export default function OfertasScreen({ navigation }) {
 
       {/* ------------------- MODAL DE NOTIFICACIONES ------------------- */}
       <NotificationsModal
-        visible={showNotifications}
-        onClose={() => setShowNotifications(false)}
-        onNotificationsUpdate={handleNotificationsUpdate}
+        visible={notificationsModalVisible}
+        onClose={closeNotificationsModal} // ✅ USAR FUNCIÓN DEL CONTEXTO
+        // ✅ ELIMINAR: onNotificationsUpdate ya no es necesario
       />
 
       {/* BOTTOM NAVIGATION ACTUALIZADO */}
       <BottomNavigation
         currentScreen="ofertas"
         onNavigate={handleNavigation}
+        notificationsCount={notificationsCount} // ✅ DEL CONTEXTO
       />
     </View>
   );
 };
 
+// ... (los estilos se mantienen igual)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -357,7 +321,7 @@ const styles = StyleSheet.create({
   },
   sortMenu: {
     position: 'absolute',
-    top: 50, // debajo del botón
+    top: 50,
     right: 10,
     backgroundColor: theme.colors.background,
     borderRadius: theme.borderRadius.md,
@@ -441,7 +405,6 @@ const styles = StyleSheet.create({
   rejectButton: {
     backgroundColor: '#ffe6e6',
   },
-  // NUEVOS ESTILOS PARA NOTIFICACIONES
   notificationContainer: {
     position: 'relative',
     alignItems: 'center',

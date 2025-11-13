@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
 
-const NavItem = ({ icon, label, isActive, onPress, isScanButton = false, scanComponent }) => {
+const NavItem = ({ icon, label, isActive, onPress, isScanButton = false, scanComponent, notificationsCount = 0 }) => {
   if (isScanButton) {
     return (
       <View style={styles.scanButtonContainer}>
@@ -27,13 +27,26 @@ const NavItem = ({ icon, label, isActive, onPress, isScanButton = false, scanCom
     );
   }
 
+  // ✅ NUEVO: Contenedor especial para notificaciones con badge
+  const isNotifications = label === 'Notificaciones';
+  
   return (
     <TouchableOpacity style={styles.navItem} onPress={onPress}>
-      <Ionicons 
-        name={icon} 
-        size={theme.typography.fontSize.large} 
-        color={isActive ? theme.colors.primary : theme.colors.textMuted} 
-      />
+      <View style={styles.iconContainer}>
+        <Ionicons 
+          name={icon} 
+          size={theme.typography.fontSize.large} 
+          color={isActive ? theme.colors.primary : theme.colors.textMuted} 
+        />
+        {/* ✅ NUEVO: Badge para notificaciones no leídas */}
+        {isNotifications && notificationsCount > 0 && (
+          <View style={styles.navNotificationBadge}>
+            <Text style={styles.navBadgeText}>
+              {notificationsCount > 9 ? '9+' : notificationsCount}
+            </Text>
+          </View>
+        )}
+      </View>
       <Text style={[
         styles.navLabel,
         isActive ? styles.navLabelActive : styles.navLabelInactive
@@ -44,13 +57,14 @@ const NavItem = ({ icon, label, isActive, onPress, isScanButton = false, scanCom
   );
 };
 
-const BottomNavigation = ({ currentScreen, onNavigate, scanComponent }) => {
+const BottomNavigation = ({ currentScreen, onNavigate, scanComponent, notificationsCount = 0 }) => {
+  // ✅ MODIFICADO: Reemplazar "Ajustes" por "Notificaciones"
   const navItems = [
     { id: 'home', icon: 'home-outline', label: 'Home' },
     { id: 'profile', icon: 'person-outline', label: 'Perfil' },
     { id: 'scan', icon: 'scan-outline', label: 'Escanear', isScanButton: true },
     { id: 'ofertas', icon: 'pricetag-outline', label: 'Ofertas' },
-    { id: 'settings', icon: 'settings-outline', label: 'Ajustes' },
+    { id: 'notifications', icon: 'notifications-outline', label: 'Notificaciones' }, // ✅ CAMBIADO
   ];
 
   return (
@@ -64,6 +78,7 @@ const BottomNavigation = ({ currentScreen, onNavigate, scanComponent }) => {
           isScanButton={item.isScanButton}
           onPress={() => onNavigate(item.id)}
           scanComponent={item.isScanButton ? scanComponent : null}
+          notificationsCount={item.label === 'Notificaciones' ? notificationsCount : 0} // ✅ Pasar contador solo a notificaciones
         />
       ))}
     </View>
@@ -74,10 +89,10 @@ const styles = StyleSheet.create({
   navContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'flex-start', // Cambiado para mejor alineación
+    alignItems: 'flex-start',
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm, // Aumentado para consistencia
+    paddingVertical: theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: theme.colors.background2,
     shadowColor: theme.colors.text,
@@ -88,7 +103,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 8,
-    minHeight: 70, // Altura mínima consistente
+    minHeight: 70,
   },
   navItem: {
     alignItems: 'center',
@@ -96,18 +111,41 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.xs,
     paddingVertical: theme.spacing.xs,
     flex: 1,
-    minHeight: 50, // Altura mínima para items
+    minHeight: 50,
+  },
+  // ✅ NUEVO: Contenedor para ícono con badge
+  iconContainer: {
+    position: 'relative',
+  },
+  // ✅ NUEVO: Badge para navegación
+  navNotificationBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF3B30',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: theme.colors.background,
+  },
+  navBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: 'bold',
   },
   scanButtonContainer: {
     alignItems: 'center',
-    justifyContent: 'flex-start', // Alineación consistente
+    justifyContent: 'flex-start',
     flex: 1,
-    minHeight: 70, // Misma altura que los otros items
+    minHeight: 70,
   },
   scanButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: -theme.spacing.lg, // Mismo margen siempre
+    marginTop: -theme.spacing.lg,
   },
   scanButtonCircle: {
     width: 60,

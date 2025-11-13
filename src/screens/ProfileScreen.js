@@ -5,8 +5,15 @@ import { theme } from '../styles/theme';
 import BottomNavigation from '../components/BottomNavigation';
 import { auth, db } from '../lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { useNotifications } from '../contexts/NotificationsContext'; // ✅ IMPORTAR
 
 const ProfileScreen = ({ navigation }) => {
+  // ✅ USAR CONTEXTO
+  const {
+    notificationsCount,
+    openNotificationsModal
+  } = useNotifications();
+
   const [userData, setUserData] = useState({
     nombre: '',
     apellido: '',
@@ -17,7 +24,6 @@ const ProfileScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [editingField, setEditingField] = useState(null);
 
-  // Cargar datos del usuario
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -69,11 +75,23 @@ const ProfileScreen = ({ navigation }) => {
 
   const handleNavigation = (screen) => {
     switch (screen) {
-      case 'home': navigation.replace('Home'); break;
-      case 'scan': navigation.replace('Home'); break;
-      case 'ofertas': navigation.replace('Ofertas'); break;
-      case 'settings': navigation.replace('Ajustes'); break;
-      default: navigation.replace('Home');
+      case 'home':
+        navigation.replace('Home');
+        break;
+      case 'profile':
+        // Ya estamos en perfil
+        break;
+      case 'scan':
+        navigation.replace('Home');
+        break;
+      case 'ofertas':
+        navigation.replace('Ofertas');
+        break;
+      case 'notifications':
+        openNotificationsModal(); // ✅ USAR FUNCIÓN DEL CONTEXTO
+        break;
+      default:
+        navigation.replace('Home');
     }
   };
 
@@ -126,12 +144,10 @@ const ProfileScreen = ({ navigation }) => {
           </Text>
         </View>
         <View style={styles.userInfo}>
-          {/* Nombre editable */}
           <TouchableOpacity>
             <Text style={styles.userName}>{userData.nombre}</Text>
           </TouchableOpacity>
 
-          {/* Apellido editable */}
           <TouchableOpacity>
             <Text style={styles.userLastName}>{userData.apellido}</Text>
           </TouchableOpacity>
@@ -143,13 +159,12 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información Personal</Text>
 
-          {/* DNI NO editable */}
           <EditableField
             label="DNI"
             field="dni"
             value={userData.dni}
             icon="card-outline"
-            editable={false} // ← DNI no editable
+            editable={false}
           />
 
           <EditableField
@@ -176,11 +191,16 @@ const ProfileScreen = ({ navigation }) => {
         </TouchableOpacity>
       </ScrollView>
 
-      <BottomNavigation currentScreen="profile" onNavigate={handleNavigation} />
+      <BottomNavigation 
+        currentScreen="profile" 
+        onNavigate={handleNavigation} 
+        notificationsCount={notificationsCount} // ✅ DEL CONTEXTO
+      />
     </View>
   );
 };
 
+// ... (los estilos se mantienen igual)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -220,9 +240,6 @@ const styles = StyleSheet.create({
   userInfo: {
     flex: 1,
   },
-  nameContainer: {
-    marginBottom: 4,
-  },
   userName: {
     fontSize: theme.typography.fontSize.large,
     fontWeight: 'bold',
@@ -232,16 +249,6 @@ const styles = StyleSheet.create({
     fontSize: theme.typography.fontSize.large,
     fontWeight: 'bold',
     color: theme.colors.text,
-  },
-  nameInput: {
-    fontSize: theme.typography.fontSize.large,
-    fontWeight: 'bold',
-    color: theme.colors.text,
-    backgroundColor: theme.colors.background2,
-    padding: theme.spacing.sm,
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.primary,
   },
   content: {
     flex: 1,
@@ -280,7 +287,7 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
   nonEditableField: {
-    color: theme.colors.textMuted, // Color diferente para indicar que no es editable
+    color: theme.colors.textMuted,
     fontStyle: 'normal',
   },
   input: {

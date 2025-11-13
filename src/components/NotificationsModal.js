@@ -1,18 +1,25 @@
-// components/NotificationsModal.js
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
-import { collection, query, where, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import { useNotifications } from '../contexts/NotificationsContext'; // ✅ IMPORTAR
 
-const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
-  const [notifications, setNotifications] = useState([]);
+const NotificationsModal = ({ visible, onClose }) => {
+  // ✅ USAR CONTEXTO
+  const {
+    handleNotificationsUpdate,
+    markNotificationAsRead,
+    allNotifications,
+    readNotificationsRef
+  } = useNotifications();
+
   const [loading, setLoading] = useState(true);
   const previousOffersRef = useRef([]);
-  const readNotificationsRef = useRef(new Set()); // ✅ NUEVO: Persistir notificaciones leídas
 
   useEffect(() => {
+
     const user = auth.currentUser;
     if (!user) {
       setLoading(false);
@@ -21,7 +28,6 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
 
     console.log("🔔 Escuchando notificaciones para usuario:", user.uid);
 
-    // Query para ofertas del usuario
     const offersQuery = query(
       collection(db, 'offers'),
       where('userId', '==', user.uid),
@@ -37,25 +43,17 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
 
         console.log("📦 Ofertas recibidas:", offersData.length);
         
-        // Generar notificaciones basadas en el estado actual
         const generatedNotifications = await generateNotificationsFromOffers(offersData);
-        
-        // Detectar cambios y generar notificaciones nuevas
         const newChangeNotifications = detectStateChanges(previousOffersRef.current, offersData);
         
-        // Combinar notificaciones
-        const allNotifications = [...newChangeNotifications, ...generatedNotifications];
+        const allNewNotifications = [...newChangeNotifications, ...generatedNotifications];
+        const uniqueNotifications = removeDuplicateNotifications(allNewNotifications);
         
-        // Eliminar duplicados y ordenar por timestamp
-        const uniqueNotifications = removeDuplicateNotifications(allNotifications);
-        
-        // ✅ CORRECCIÓN: Mantener estado de "leído" de notificaciones existentes
+        // ✅ USAR readNotificationsRef DEL CONTEXTO
         const notificationsWithReadState = uniqueNotifications.map(notification => {
-          // Si ya estaba marcada como leída, mantener ese estado
           if (readNotificationsRef.current.has(notification.id)) {
             return { ...notification, read: true };
           }
-          // Si es una notificación nueva, verificar si ya existe una similar leída
           const existingReadNotification = Array.from(readNotificationsRef.current).find(
             readId => readId.includes(notification.offerId) && readId.includes(notification.type)
           );
@@ -73,13 +71,11 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
 
         console.log("📢 Notificaciones totales:", notificationsWithReadState.length);
         
-        setNotifications(notificationsWithReadState);
-        
-        // Notificar a las screens sobre las notificaciones no leídas
-        if (onNotificationsUpdate) {
-          const unreadCount = notificationsWithReadState.filter(n => !n.read).length;
-          onNotificationsUpdate(unreadCount, notificationsWithReadState);
-        }
+        // ✅ ACTUALIZAR CONTEXTO
+        handleNotificationsUpdate(
+          notificationsWithReadState.filter(n => !n.read).length,
+          notificationsWithReadState
+        );
         
         setLoading(false);
         previousOffersRef.current = offersData;
@@ -95,6 +91,11 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
 
     return () => unsubscribe();
   }, [visible]);
+
+  // ✅ SIMPLIFICAR markAsRead - usar función del contexto
+  const markAsRead = (notificationId) => {
+    markNotificationAsRead(notificationId);
+  };
 
   // Función para generar notificaciones desde las ofertas actuales
   const generateNotificationsFromOffers = async (offers) => {
@@ -120,7 +121,6 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
           break;
           
         case 'Rechazada':
-          // Buscar información del rechazo si está disponible
           const rejectionReason = offer.detalle || 'No se especificó motivo';
           notification = {
             id: `rejected_${offer.id}`,
@@ -135,7 +135,6 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
           break;
 
         case 'Pendiente':
-          // ✅ AÑADIR: Notificaciones para ofertas pendientes
           notification = {
             id: `new_offer_${offer.id}`,
             type: 'nueva_oferta',
@@ -164,9 +163,8 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
     currentOffers.forEach(currentOffer => {
       const previousOffer = previousOffers.find(prev => prev.id === currentOffer.id);
       
-      if (!previousOffer) return; // No notificar para ofertas nuevas (ya se manejan arriba)
+      if (!previousOffer) return;
       
-      // Detectar cambio a "Entregado"
       if (previousOffer.envioState !== 'Entregado' && currentOffer.envioState === 'Entregado') {
         newNotifications.push({
           id: `change_delivered_${currentOffer.id}_${Date.now()}`,
@@ -180,7 +178,6 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
         });
       }
       
-      // Detectar cambio a "Rechazada"
       if (previousOffer.state !== 'Rechazada' && currentOffer.state === 'Rechazada') {
         const rejectionReason = currentOffer.detalle || 'No se especificó motivo';
         newNotifications.push({
@@ -195,7 +192,6 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
         });
       }
 
-      // Detectar nueva oferta pendiente
       if (previousOffer.state !== 'Pendiente' && currentOffer.state === 'Pendiente') {
         newNotifications.push({
           id: `change_new_offer_${currentOffer.id}_${Date.now()}`,
@@ -217,7 +213,6 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
   const removeDuplicateNotifications = (notifications) => {
     const seen = new Set();
     return notifications.filter(notification => {
-      // Usar offerId + type como clave única para evitar duplicados
       const key = `${notification.offerId}_${notification.type}`;
       if (seen.has(key)) {
         return false;
@@ -273,42 +268,12 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
     return date.toLocaleDateString('es-ES');
   };
 
-  const markAsRead = (notificationId) => {
-    // ✅ CORRECCIÓN: Actualizar el ref para persistir entre re-renders
-    readNotificationsRef.current.add(notificationId);
-    
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId 
-          ? { ...notif, read: true }
-          : notif
-      )
-    );
-    
-    // Actualizar el contador después de marcar como leído
-    const updatedNotifications = notifications.map(notif => 
-      notif.id === notificationId ? { ...notif, read: true } : notif
-    );
-    
-    if (onNotificationsUpdate) {
-      const updatedUnreadCount = updatedNotifications.filter(n => !n.read).length;
-      onNotificationsUpdate(updatedUnreadCount, updatedNotifications);
-    }
-  };
-
-  // ✅ NUEVO: Limpiar notificaciones leídas cuando se cierra el modal
-  const handleClose = () => {
-    // Opcional: Aquí podrías guardar las notificaciones leídas en AsyncStorage
-    // para persistirlas entre sesiones de la app
-    onClose();
-  };
-
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
-      onRequestClose={handleClose}
+      onRequestClose={onClose}
     >
       <View style={styles.modalContainer}>
         <View style={styles.notificationsModalContent}>
@@ -316,7 +281,7 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
             <Text style={styles.notificationsTitle}>Notificaciones</Text>
             <TouchableOpacity 
               style={styles.closeNotificationsButton}
-              onPress={handleClose}
+              onPress={onClose}
             >
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
@@ -328,7 +293,7 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
                 <ActivityIndicator size="large" color={theme.colors.primary} />
                 <Text style={styles.emptyNotificationsText}>Cargando notificaciones...</Text>
               </View>
-            ) : notifications.length === 0 ? (
+            ) : allNotifications.length === 0 ? ( // ✅ USAR allNotifications DEL CONTEXTO
               <View style={styles.emptyNotifications}>
                 <Ionicons name="notifications-off-outline" size={48} color={theme.colors.textMuted} />
                 <Text style={styles.emptyNotificationsText}>Sin notificaciones</Text>
@@ -338,7 +303,7 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
               </View>
             ) : (
               <View style={styles.notificationsContainer}>
-                {notifications.map((notification) => (
+                {allNotifications.map((notification) => ( // ✅ USAR allNotifications DEL CONTEXTO
                   <TouchableOpacity 
                     key={notification.id} 
                     style={[
@@ -372,7 +337,7 @@ const NotificationsModal = ({ visible, onClose, onNotificationsUpdate }) => {
   );
 };
 
-// Los estilos se mantienen igual...
+// ... (los estilos se mantienen igual)
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
