@@ -1,48 +1,30 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, orderBy, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator, Modal, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  Modal,
+  ScrollView
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import OpenCameraButton from '../components/OpenCameraButton';
 import ButtonPrimary from '../components/ButtonPrimary';
 import BottomNavigation from '../components/BottomNavigation';
-import NotificationsModal from '../components/NotificationsModal';
 import { theme } from '../styles/theme';
 import Toast from "react-native-toast-message";
 import { createRequestWithPhoto } from "../features/requests/actions";
 import { Dimensions } from 'react-native';
+import NotificationsModal from '../components/NotificationsModal'; // AÑADIR ESTA IMPORTACIÓN
 
 const { widthPantalla } = Dimensions.get('window');
+
 export default function HomeScreen({ navigation }) {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-
-  useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const q = query(
-      collection(db, 'offers'),
-      where('userId', '==', user.uid),
-      where('state', 'in', ['Aceptada', 'En preparación', 'Listo para envío', 'Enviando', 'Entregado']),
-      orderBy('timeStamp', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const userOrders = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setOrders(userOrders);
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
 
   const handleScan = async (asset) => {
     try {
@@ -95,6 +77,142 @@ export default function HomeScreen({ navigation }) {
     />
   );
 
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  
+  // AÑADIR ESTADO PARA EL MODAL DE NOTIFICACIONES
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
+
+  // request activa (no expirada)
+  const [tieneRequestActivo, setTieneRequestActivo] = useState(false);
+  const [requestActivaId, setRequestActivaId] = useState(null);
+
+  // hay alguna oferta (del usuario) que no esté entregada
+  const [tieneOfertaDeRequest, setTieneOfertaDeRequest] = useState(false);
+
+  // condición final: NO puede escanear si:
+  // - tiene request activa, o
+  // - tiene alguna oferta no entregada
+  const userPuedeEscanear = !tieneRequestActivo && !tieneOfertaDeRequest;
+
+  // AÑADIR FUNCIÓN PARA ABRIR EL MODAL DE NOTIFICACIONES
+  const handleOpenNotifications = () => {
+    setNotificationsModalVisible(true);
+  };
+
+  // listener de ofertas del usuario (para mostrar pedidos)
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const q = query(
+      collection(db, 'offers'),
+      where('userId', '==', user.uid),
+      where('state', 'in', ['Aceptada', 'En preparación', 'Listo para envío', 'Enviando', 'Entregado']),
+      orderBy('timeStamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const userOrders = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setOrders(userOrders);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // listener para saber si el usuario tiene requests activas (no expiradas) — TAL CUAL LO QUERÉS
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    let unsubscribeRequests = null;
+    let intervalId = null;
+
+    const start = () => {
+      const now = Timestamp.now();
+
+      const qReq = query(
+        collection(db, "requests"),
+        where("userId", "==", user.uid),
+        where("expiresAt", ">", now)
+        // si querés: where("state", "==", "Abierto")
+      );
+
+      // cerramos listener anterior si ya existía
+      if (unsubscribeRequests) {
+        unsubscribeRequests();
+      }
+
+      unsubscribeRequests = onSnapshot(
+        qReq,
+        (snap) => {
+          const hayActivas = snap.docs.length > 0;
+          setTieneRequestActivo(hayActivas);
+          setRequestActivaId(hayActivas ? snap.docs[0].id : null);
+        },
+        (error) => {
+          console.error("Error al escuchar requests activas:", error);
+          setTieneRequestActivo(false);
+          setRequestActivaId(null);
+        }
+      );
+    };
+
+    // iniciar primera vez
+    start();
+
+    // reiniciar cada N segundos para refrescar el filtro de expiresAt
+    intervalId = setInterval(() => {
+      start();
+    }, 5 * 1000);
+
+    // cleanup
+    return () => {
+      if (unsubscribeRequests) unsubscribeRequests();
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
+  // listener de offers del usuario con envioState != "Entregado"
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) {
+      setTieneOfertaDeRequest(false);
+      return;
+    }
+
+    let unsubscribeOffers = null;
+
+    const qOff = query(
+      collection(db, "offers"),
+      where("userId", "==", user.uid),
+      where("envioState", "!=", "Entregado")
+    );
+
+    unsubscribeOffers = onSnapshot(
+      qOff,
+      (snap) => {
+        // si existe al menos una oferta cuyo envioState != "Entregado",
+        // consideramos que hay una oferta "pendiente" o "en curso"
+        const hayOferta = snap.docs.length > 0;
+        setTieneOfertaDeRequest(hayOferta);
+      },
+      (error) => {
+        console.error("Error al escuchar offers no entregadas:", error);
+        setTieneOfertaDeRequest(false);
+      }
+    );
+
+    return () => {
+      if (unsubscribeOffers) unsubscribeOffers();
+    };
+  }, []);
+
   const getBadgeStyle = (state) => {
     switch (state) {
       case 'En preparación':
@@ -121,7 +239,9 @@ export default function HomeScreen({ navigation }) {
   };
 
   const renderOrder = ({ item }) => {
-    const visibleState = item.state === "Aceptada" ? item.envioState || "En preparación" : item.state;
+    const visibleState = item.state === "Aceptada"
+      ? item.envioState || "En preparación"
+      : item.state;
 
     return (
       <TouchableOpacity
@@ -167,9 +287,10 @@ export default function HomeScreen({ navigation }) {
         </View>
 
         <View style={styles.rightSection}>
+          {/* MODIFICAR ESTE BOTÓN PARA ABRIR EL MODAL DE NOTIFICACIONES */}
           <TouchableOpacity 
             style={styles.iconButton}
-            onPress={() => setShowNotifications(true)}
+            onPress={handleOpenNotifications}
           >
             <Ionicons name="notifications-outline" size={28} color={theme.colors.primary} />
           </TouchableOpacity>
@@ -203,13 +324,6 @@ export default function HomeScreen({ navigation }) {
         )}
       </View>
 
-      {/* ------------------- MODAL DE NOTIFICACIONES ------------------- */}
-      <NotificationsModal
-        visible={showNotifications}
-        onClose={() => setShowNotifications(false)}
-        notifications={notifications}
-      />
-
       {/* ------------------- MODAL DE DETALLE ------------------- */}
       <Modal
         visible={!!selectedOrder}
@@ -233,7 +347,9 @@ export default function HomeScreen({ navigation }) {
 
                 <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: 5 }}>Medicamentos:</Text>
                 {selectedOrder.medicamentos?.map((m, i) => (
-                  <Text style={styles.farmaciaName} key={i}>• {m.nombreydosis} (x{m.cantidad}) - Precio unitario = ${m.subtotal / m.cantidad}</Text>
+                  <Text style={styles.farmaciaName} key={i}>
+                    • {m.nombreydosis} (x{m.cantidad}) - Precio unitario = ${m.subtotal / m.cantidad}
+                  </Text>
                 ))}
               </ScrollView>
             )}
@@ -248,11 +364,17 @@ export default function HomeScreen({ navigation }) {
         </View>
       </Modal>
 
-      {/* ------------------- BARRA INFERIOR CON SCAN FUNCIONAL ------------------- */}
+      {/* ------------------- AÑADIR MODAL DE NOTIFICACIONES ------------------- */}
+      <NotificationsModal
+        visible={notificationsModalVisible}
+        onClose={() => setNotificationsModalVisible(false)}
+      />
+
+      {/* ------------------- BARRA INFERIOR CON SCAN CONDICIONAL ------------------- */}
       <BottomNavigation
         currentScreen="home"
         onNavigate={handleNavigation}
-        scanComponent={ScanButtonComponent}
+        scanComponent={userPuedeEscanear ? ScanButtonComponent : null}
       />
 
       <StatusBar style="auto" />
@@ -260,7 +382,6 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-// ... (los estilos se mantienen igual, eliminando solo los del modal de notificaciones)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
