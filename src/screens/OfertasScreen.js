@@ -7,6 +7,7 @@ import { collection, query, where, onSnapshot, orderBy, getDocs, doc, deleteDoc,
 import { db } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 import BottomNavigation from '../components/BottomNavigation';
+import Toast from 'react-native-toast-message'
 
 
 export default function OfertasScreen({ navigation }) {
@@ -43,8 +44,6 @@ export default function OfertasScreen({ navigation }) {
     return () => unsubscribe();
   }, []);
 
-
-  //comentario inutil
 
   // Ordenamiento justo antes de renderizar
   const sortedOffers = [...offers].sort((a, b) => {
@@ -122,11 +121,20 @@ export default function OfertasScreen({ navigation }) {
         await deleteDoc(doc(db, "requests", rid));
       }
 
-      Alert.alert("✅ Oferta aceptada", "Se confirmó tu pedido.");
+      Toast.show({
+        type: 'success',
+        text1: 'Oferta aceptada',
+        text2: 'Se confirmó tu pedido.'
+      });
       setOffers([]);
+      navigation.replace('Home');
     } catch (error) {
       console.error("Error al aceptar oferta:", error);
-      Alert.alert("Error", "No se pudo aceptar la oferta. Intenta de nuevo.");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo aceptar la oferta. Intenta de nuevo.'
+      });
     }
   };
 
@@ -136,6 +144,10 @@ export default function OfertasScreen({ navigation }) {
   const handleReject = async (offer) => {
     try {
       await deleteDoc(doc(db, "offers", offer.id));
+      Toast.show({
+        type: 'error',
+        text1: 'La oferta ha sido rechazada.',
+      });
     } catch (error) {
       console.error("Error al eliminar oferta:", error);
       Alert.alert("Error", "No se pudo rechazar la oferta. Intenta nuevamente.");

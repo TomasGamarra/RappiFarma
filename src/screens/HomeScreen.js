@@ -332,7 +332,7 @@ export default function HomeScreen({ navigation }) {
                   ? selectedOrder.envioState || "En preparación"
                   : selectedOrder.state}</Text>
 
-                <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: 5 }}>Medicamentos:</Text>
+                <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: 5, textAlign: 'center' }}>Medicamentos</Text>
                 {selectedOrder.medicamentos?.map((m, i) => (
                   <Text style={styles.farmaciaName} key={i}>
                     • {m.nombreydosis} (x{m.cantidad}) - Precio unitario = ${m.subtotal / m.cantidad}
@@ -533,6 +533,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   closeButton: {
     backgroundColor: theme.colors.primary,
