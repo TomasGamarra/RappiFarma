@@ -1,3 +1,4 @@
+
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../styles/theme';
@@ -6,6 +7,7 @@ import { collection, query, where, onSnapshot, orderBy, getDocs, doc, deleteDoc,
 import { db } from '../lib/firebase';
 import { auth } from '../lib/firebase';
 import BottomNavigation from '../components/BottomNavigation';
+import Toast from 'react-native-toast-message'
 import NotificationsModal from '../components/NotificationsModal';
 import { useNotifications } from '../contexts/NotificationsContext'; // ✅ IMPORTAR
 
@@ -22,6 +24,8 @@ export default function OfertasScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('monto');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState(null);
+
   
   // ✅ ELIMINAR estados locales de notificaciones
   // const [showNotifications, setShowNotifications] = useState(false);
@@ -125,17 +129,30 @@ export default function OfertasScreen({ navigation }) {
         await deleteDoc(doc(db, "requests", rid));
       }
 
-      Alert.alert("✅ Oferta aceptada", "Se confirmó tu pedido.");
+      Toast.show({
+        type: 'success',
+        text1: 'Oferta aceptada',
+        text2: 'Se confirmó tu pedido.'
+      });
       setOffers([]);
+      navigation.replace('Home');
     } catch (error) {
       console.error("Error al aceptar oferta:", error);
-      Alert.alert("Error", "No se pudo aceptar la oferta. Intenta de nuevo.");
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo aceptar la oferta. Intenta de nuevo.'
+      });
     }
   };
 
   const handleReject = async (offer) => {
     try {
       await deleteDoc(doc(db, "offers", offer.id));
+      Toast.show({
+        type: 'error',
+        text1: 'La oferta ha sido rechazada.',
+      });
     } catch (error) {
       console.error("Error al eliminar oferta:", error);
       Alert.alert("Error", "No se pudo rechazar la oferta. Intenta nuevamente.");
@@ -200,7 +217,7 @@ export default function OfertasScreen({ navigation }) {
           ) : (
 
             sortedOffers.map((offer) => (
-              <View key={offer.id} style={styles.pharmacyCard}>
+              <TouchableOpacity key={offer.id} style={styles.pharmacyCard} onPress={() => setSelectedOffer(offer)}>
                 <View style={styles.pharmacyIcon}>
                   <Ionicons name="medical-outline" size={24} color={theme.colors.primary} />
                 </View>
@@ -229,11 +246,47 @@ export default function OfertasScreen({ navigation }) {
                   </TouchableOpacity>
                 </View>
 
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </ScrollView>
       </View>
+      {/* ------------------- MODAL DE DETALLE DE OFERTA ------------------- */}
+      <Modal
+        visible={!!selectedOffer}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedOffer(null)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Detalle de la oferta</Text>
+
+            {selectedOffer && (
+              <ScrollView>
+                <Text style={styles.farmaciaName}> Dirección: {selectedOffer.direccion}</Text>
+                <Text style={styles.farmaciaName}> Farmacia: {selectedOffer.farmacia}</Text>
+                <Text style={styles.farmaciaName}> Total: ${selectedOffer.preciototal}</Text>
+                <Text style={styles.farmaciaName}> Tiempo estimado: {selectedOffer.tiempoEspera || 'N/D'} min</Text>
+
+                <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: theme.spacing.md, textAlign: 'center' }}>Medicamentos</Text>
+                {selectedOffer.medicamentos?.map((m, i) => (
+                  <Text style={styles.farmaciaName} key={i}>
+                    • {m.nombreydosis} (x{m.cantidad}) - Precio unitario = ${m.subtotal / m.cantidad}
+                  </Text>
+                ))}
+              </ScrollView>
+            )}
+
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setSelectedOffer(null)}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* ------------------- MODAL DE NOTIFICACIONES ------------------- */}
       <NotificationsModal
@@ -404,6 +457,46 @@ const styles = StyleSheet.create({
   },
   rejectButton: {
     backgroundColor: '#ffe6e6',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    width: '90%',
+    maxHeight: '80%',
+    elevation: 5,
+    shadowColor: theme.colors.text,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.text,
+    textAlign: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  farmaciaName: {
+    fontSize: theme.typography.fontSize.medium,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+    lineHeight: 20,
+  },
+  closeButton: {
+    backgroundColor: theme.colors.primary,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+    marginTop: theme.spacing.lg,
   },
   notificationContainer: {
     position: 'relative',

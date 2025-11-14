@@ -247,7 +247,7 @@ export default function HomeScreen({ navigation }) {
         onPress={() => setSelectedOrder(item)}
       >
         <View style={styles.orderHeader}>
-          <Text style={styles.farmaciaName} numberOfLines={1}>{item.farmacia}</Text>
+          <Text style={[styles.farmaciaName, { fontWeight: 'bold' }]} numberOfLines={1}>{item.farmacia}</Text>
 
           <View style={[styles.stateBadge, getBadgeStyle(visibleState)]}>
             <Text style={[styles.orderStateText, getStateTextColor(visibleState)]}>
@@ -317,7 +317,7 @@ export default function HomeScreen({ navigation }) {
                   ? selectedOrder.envioState || "En preparación"
                   : selectedOrder.state}</Text>
 
-                <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: 5 }}>Medicamentos:</Text>
+                <Text style={{ marginTop: 20, fontWeight: 'bold', fontSize: 20, marginBottom: 5, textAlign: 'center' }}>Medicamentos</Text>
                 {selectedOrder.medicamentos?.map((m, i) => (
                   <Text style={styles.farmaciaName} key={i}>
                     • {m.nombreydosis} (x{m.cantidad}) - Precio unitario = ${m.subtotal / m.cantidad}
@@ -472,11 +472,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   farmaciaName: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: theme.typography.fontSize.medium,
     color: theme.colors.text,
-    flex: 1,
-    marginRight: 10,
+    marginBottom: theme.spacing.sm,
+    lineHeight: 20,
   },
   stateBadge: {
     paddingHorizontal: 10,
@@ -527,6 +526,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 10,
+    textAlign: 'center',
   },
   closeButton: {
     backgroundColor: theme.colors.primary,
