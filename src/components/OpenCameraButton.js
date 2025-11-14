@@ -15,11 +15,11 @@ export default function OpenCameraButton({
 }) {
   const handlePress = async () => {
     // 1) pedir permiso
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado');
-      return;
-    }
+    //const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    //if (status !== 'granted') {
+    //  Alert.alert('Permiso denegado');
+    //  return;
+    //}
 
     // 2) abrir cámara
     const result = await ImagePicker.launchCameraAsync({
