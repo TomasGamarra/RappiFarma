@@ -39,7 +39,6 @@ export default function HomeScreen({ navigation }) {
       Toast.show({
         type: "success",
         text1: "Receta enviada",
-        text2: `Solicitud: ${requestId}`
       });
       navigation.replace('Ofertas');
     } catch (e) {
