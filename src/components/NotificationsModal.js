@@ -26,7 +26,7 @@ const NotificationsModal = ({ visible, onClose }) => {
       return;
     }
 
-    console.log("🔔 Escuchando notificaciones para usuario:", user.uid);
+    // console.log("🔔 Escuchando notificaciones para usuario:", user.uid);
 
     const offersQuery = query(
       collection(db, 'offers'),
@@ -41,14 +41,14 @@ const NotificationsModal = ({ visible, onClose }) => {
           ...doc.data(),
         }));
 
-        console.log("📦 Ofertas recibidas:", offersData.length);
-        
+        //console.log("📦 Ofertas recibidas:", offersData.length);
+
         const generatedNotifications = await generateNotificationsFromOffers(offersData);
         const newChangeNotifications = detectStateChanges(previousOffersRef.current, offersData);
-        
+
         const allNewNotifications = [...newChangeNotifications, ...generatedNotifications];
         const uniqueNotifications = removeDuplicateNotifications(allNewNotifications);
-        
+
         // ✅ USAR readNotificationsRef DEL CONTEXTO
         const notificationsWithReadState = uniqueNotifications.map(notification => {
           if (readNotificationsRef.current.has(notification.id)) {
@@ -62,24 +62,24 @@ const NotificationsModal = ({ visible, onClose }) => {
           }
           return notification;
         });
-        
+
         notificationsWithReadState.sort((a, b) => {
           const timeA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp);
           const timeB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp);
           return timeB - timeA;
         });
 
-        console.log("📢 Notificaciones totales:", notificationsWithReadState.length);
-        
+        //  console.log("📢 Notificaciones totales:", notificationsWithReadState.length);
+
         // ✅ ACTUALIZAR CONTEXTO
         handleNotificationsUpdate(
           notificationsWithReadState.filter(n => !n.read).length,
           notificationsWithReadState
         );
-        
+
         setLoading(false);
         previousOffersRef.current = offersData;
-        
+
       } catch (error) {
         console.error("❌ Error procesando notificaciones:", error);
         setLoading(false);
@@ -100,10 +100,10 @@ const NotificationsModal = ({ visible, onClose }) => {
   // Función para generar notificaciones desde las ofertas actuales
   const generateNotificationsFromOffers = async (offers) => {
     const notifications = [];
-    
+
     for (const offer of offers) {
       let notification = null;
-      
+
       switch (offer.state) {
         case 'Aceptada':
           if (offer.envioState === 'Entregado') {
@@ -119,7 +119,7 @@ const NotificationsModal = ({ visible, onClose }) => {
             };
           }
           break;
-          
+
         case 'Rechazada':
           const rejectionReason = offer.detalle || 'No se especificó motivo';
           notification = {
@@ -147,24 +147,24 @@ const NotificationsModal = ({ visible, onClose }) => {
           };
           break;
       }
-      
+
       if (notification) {
         notifications.push(notification);
       }
     }
-    
+
     return notifications;
   };
 
   // Función para detectar cambios de estado
   const detectStateChanges = (previousOffers, currentOffers) => {
     const newNotifications = [];
-    
+
     currentOffers.forEach(currentOffer => {
       const previousOffer = previousOffers.find(prev => prev.id === currentOffer.id);
-      
+
       if (!previousOffer) return;
-      
+
       if (previousOffer.envioState !== 'Entregado' && currentOffer.envioState === 'Entregado') {
         newNotifications.push({
           id: `change_delivered_${currentOffer.id}_${Date.now()}`,
@@ -177,7 +177,7 @@ const NotificationsModal = ({ visible, onClose }) => {
           offerId: currentOffer.id
         });
       }
-      
+
       if (previousOffer.state !== 'Rechazada' && currentOffer.state === 'Rechazada') {
         const rejectionReason = currentOffer.detalle || 'No se especificó motivo';
         newNotifications.push({
@@ -205,7 +205,7 @@ const NotificationsModal = ({ visible, onClose }) => {
         });
       }
     });
-    
+
     return newNotifications;
   };
 
@@ -239,7 +239,7 @@ const NotificationsModal = ({ visible, onClose }) => {
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
-    
+
     let date;
     try {
       if (timestamp.toDate) {
@@ -253,7 +253,7 @@ const NotificationsModal = ({ visible, onClose }) => {
       console.error("Error formateando timestamp:", error);
       return '';
     }
-    
+
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -264,7 +264,7 @@ const NotificationsModal = ({ visible, onClose }) => {
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours} h`;
     if (diffDays < 7) return `Hace ${diffDays} d`;
-    
+
     return date.toLocaleDateString('es-ES');
   };
 
@@ -279,14 +279,14 @@ const NotificationsModal = ({ visible, onClose }) => {
         <View style={styles.notificationsModalContent}>
           <View style={styles.notificationsHeader}>
             <Text style={styles.notificationsTitle}>Notificaciones</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.closeNotificationsButton}
               onPress={onClose}
             >
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </TouchableOpacity>
           </View>
-          
+
           <ScrollView style={styles.notificationsList}>
             {loading ? (
               <View style={styles.emptyNotifications}>
@@ -304,8 +304,8 @@ const NotificationsModal = ({ visible, onClose }) => {
             ) : (
               <View style={styles.notificationsContainer}>
                 {allNotifications.map((notification) => ( // ✅ USAR allNotifications DEL CONTEXTO
-                  <TouchableOpacity 
-                    key={notification.id} 
+                  <TouchableOpacity
+                    key={notification.id}
                     style={[
                       styles.notificationItem,
                       !notification.read && styles.unreadNotification

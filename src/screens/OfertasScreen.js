@@ -26,7 +26,7 @@ export default function OfertasScreen({ navigation }) {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState(null);
 
-  
+
   // ✅ ELIMINAR estados locales de notificaciones
   // const [showNotifications, setShowNotifications] = useState(false);
   // const [notificationsCount, setNotificationsCount] = useState(0);
@@ -107,7 +107,7 @@ export default function OfertasScreen({ navigation }) {
       const qPend = query(
         collection(db, "offers"),
         where("userId", "==", uid),
-        where("state", "==", "Pendiente")
+        where("state", "in", ["Pendiente", "Rechazada"])
       );
       const pendSnap = await getDocs(qPend);
       await Promise.all(
@@ -292,7 +292,7 @@ export default function OfertasScreen({ navigation }) {
       <NotificationsModal
         visible={notificationsModalVisible}
         onClose={closeNotificationsModal} // ✅ USAR FUNCIÓN DEL CONTEXTO
-        // ✅ ELIMINAR: onNotificationsUpdate ya no es necesario
+      // ✅ ELIMINAR: onNotificationsUpdate ya no es necesario
       />
 
       {/* BOTTOM NAVIGATION ACTUALIZADO */}

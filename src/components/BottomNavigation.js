@@ -29,14 +29,14 @@ const NavItem = ({ icon, label, isActive, onPress, isScanButton = false, scanCom
 
   // ✅ NUEVO: Contenedor especial para notificaciones con badge
   const isNotifications = label === 'Notificaciones';
-  
+
   return (
     <TouchableOpacity style={styles.navItem} onPress={onPress}>
       <View style={styles.iconContainer}>
-        <Ionicons 
-          name={icon} 
-          size={theme.typography.fontSize.large} 
-          color={isActive ? theme.colors.primary : theme.colors.textMuted} 
+        <Ionicons
+          name={icon}
+          size={theme.typography.fontSize.large}
+          color={isActive ? theme.colors.primary : theme.colors.textMuted}
         />
         {/* ✅ NUEVO: Badge para notificaciones no leídas */}
         {isNotifications && notificationsCount > 0 && (
@@ -62,7 +62,7 @@ const BottomNavigation = ({ currentScreen, onNavigate, scanComponent, notificati
   const navItems = [
     { id: 'home', icon: 'home-outline', label: 'Home' },
     { id: 'profile', icon: 'person-outline', label: 'Perfil' },
-    { id: 'scan', icon: 'scan-outline', label: 'Escanear', isScanButton: true },
+    { id: 'scan', icon: 'scan-outline', label: '', isScanButton: true },
     { id: 'ofertas', icon: 'pricetag-outline', label: 'Ofertas' },
     { id: 'notifications', icon: 'notifications-outline', label: 'Notificaciones' }, // ✅ CAMBIADO
   ];
